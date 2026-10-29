@@ -1079,6 +1079,94 @@ static NSString *const AGToolbarAddFiles = @"AGToolbarAddFiles";
 	[self fn_reloadGroups];
 }
 
+/* ===================================================================================================
+ * NEW FILE, WHICH IS THE HALF THE ADD PANEL COULD NOT DO.
+ *
+ * The open panel chooses a file that already exists, so a project with three files could gain no fourth: "Add" opened a
+ * list of what was there and nothing else. This writes the file first — an empty body, or the two-line skeleton a C
+ * source or header starts from — puts it in the manifest, and opens it, which is the whole of what a person means by
+ * "add a file" when the file does not exist yet.
+ *
+ * THE NAME IS THE SAVE PANEL'S, because a save panel IS a name and a place: it validates the name, appends the type the
+ * project asks for, and refuses to step outside the project's directory.
+ * =================================================================================================== */
+- (void)newFile:(id)sender
+{
+	NSSavePanel *panel = [NSSavePanel savePanel];
+	NSError *error = nil;
+
+	(void)sender;
+	[panel setDirectory:[[_project projectDirectoryURL] path]];
+	[panel setNameFieldStringValue:@"Untitled.m"];
+	[panel setMessage:@"Name the file to create in this project."];
+	if ([panel runModal] != NSOKButton) {
+		return;
+	}
+	if (![self fn_createFileAtPath:[[panel URL] path] error:&error]) {
+		[self fn_log:[NSString stringWithFormat:@"error: %@\n",
+			(error != nil) ? [error localizedDescription] : @"the file could not be created"]];
+	}
+}
+
+/* THE DOOR WITHOUT THE PANEL, so a probe can create a file without a window server: the panel's only job is to produce a
+ * path, and everything after that is this. */
+- (BOOL)fn_createFileAtPath:(NSString *)path error:(NSError **)error
+{
+	NSString *name = [path lastPathComponent];
+	NSString *contents = [self fn_templateForFileName:name];
+	NSString *base = [[[_project projectDirectoryURL] path] stringByStandardizingPath];
+	NSString *standard = [path stringByStandardizingPath];
+	NSString *prefix = [base stringByAppendingString:@"/"];
+
+	/* **THE CONTAINMENT IS ASKED BEFORE ANYTHING IS WRITTEN.** Adding to the manifest refuses a path outside the project,
+	 * but that happened AFTER the file had been created: a refused name left a stray file behind. A project directory is
+	 * the only place this program writes, so the refusal comes first and nothing is touched. */
+	if (![standard hasPrefix:prefix]) {
+		if (error != NULL) {
+			*error = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileNoSuchFileError userInfo:
+				[NSDictionary dictionaryWithObject:
+					[NSString stringWithFormat:@"%@ is outside the project directory.", path]
+				forKey:NSLocalizedDescriptionKey]];
+		}
+		return NO;
+	}
+	if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
+		if (![contents writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:error]) {
+			return NO;
+		}
+	}
+	if (![_project addFileAtAbsolutePath:path error:error]) {
+		return NO;
+	}
+	if (![_project writeToURL:[_project projectDirectoryURL] error:NULL]) {
+		[self fn_log:@"error: the manifest could not be written\n"];
+	}
+	[self fn_reloadGroups];
+	/* THE MANIFEST STORES PATHS RELATIVE TO THE PROJECT, so the editor is opened with the same spelling. */
+	[self fn_openFile:[AGProjectFile fileWithRelativePath:[standard substringFromIndex:[prefix length]]]];
+	return YES;
+}
+
+/* **THE SKELETON IS THE FILE'S OWN BUSINESS, AND AN UNKNOWN TYPE GETS NOTHING.** A new .m that is empty is a file a
+ * compiler rejects the moment it is built; the two lines here are the smallest thing that is a translation unit. A .h
+ * gets a guard. Anything else is created empty, because inventing content for a type this program does not know is how a
+ * generator becomes a nuisance. */
+- (NSString *)fn_templateForFileName:(NSString *)name
+{
+	NSString *extension = [[name pathExtension] lowercaseString];
+
+	if ([extension isEqualToString:@"m"] || [extension isEqualToString:@"c"]) {
+		return @"#include <stdio.h>\n\nint main(void)\n{\n\treturn 0;\n}\n";
+	}
+	if ([extension isEqualToString:@"h"]) {
+		NSString *guard = [[name lastPathComponent] stringByReplacingOccurrencesOfString:@"."
+										    withString:@"_"];
+
+		return [NSString stringWithFormat:@"#ifndef %@\n#define %@\n\n#endif\n", guard, guard];
+	}
+	return @"";
+}
+
 - (void)addFiles:(id)sender
 {
 	(void)sender;

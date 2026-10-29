@@ -413,9 +413,17 @@ static NSString *AGTargetNameFromProjectName(NSString *name)
 	NSMutableDictionary *plist = [NSMutableDictionary dictionary];
 	NSData *data;
 	NSUInteger i;
+	/* **THE PATH IS COPIED BEFORE ANYTHING IS RELEASED, BECAUSE `url` MAY BE THIS PROJECT'S OWN URL.** This method
+	 * re-points `_URL` at the directory it wrote to, and the obvious spelling of a save — `[project writeToURL:[project
+	 * projectDirectoryURL] error:NULL]` — hands it `_URL` itself: releasing `_URL` then left the caller's argument
+	 * dangling, `[url path]` answered nil, and the project was left with NO directory at all. Every later add then
+	 * refused every file it was shown, as "outside the project directory". MEASURED in Forge: the first Add worked and
+	 * every one after it did nothing. */
+	NSString *path = [[url path] copy];
+	NSURL *held;
 
-	if (![[NSFileManager defaultManager] fileExistsAtPath:[url path]]) {
-		if (![[NSFileManager defaultManager] createDirectoryAtPath:[url path]
+	if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
+		if (![[NSFileManager defaultManager] createDirectoryAtPath:path
 					       withIntermediateDirectories:YES
 								attributes:nil
 								     error:error]) {
@@ -452,15 +460,18 @@ static NSString *AGTargetNameFromProjectName(NSString *name)
 	if (data == nil) {
 		return NO;
 	}
-	if (![data writeToFile:[[url path] stringByAppendingPathComponent:AGProjectManifestName]
-		   atomically:YES]) {
+	if (![data writeToFile:[path stringByAppendingPathComponent:AGProjectManifestName] atomically:YES]) {
 		if (error != NULL) {
 			*error = AGProjectError(@"The project manifest could not be written.");
 		}
+		[path release];
 		return NO;
 	}
+	held = [[NSURL alloc] initFileURLWithPath:path isDirectory:YES];
+
+	[path release];
 	[_URL release];
-	_URL = [[NSURL alloc] initFileURLWithPath:[url path] isDirectory:YES];
+	_URL = held;
 	/* THE METADATA, all optional: a key that is present must be a string, and one that is not is refused rather than
 	 * coerced — a plist that says nothing and a plist that says the wrong thing are different files. */
 	{

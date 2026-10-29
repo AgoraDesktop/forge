@@ -80,6 +80,14 @@
 - (void)showProjectInfo:(id)sender;
 - (void)chooseIcon:(id)sender;
 - (void)addFiles:(id)sender;
+
+/* Creates a file, adds it to the manifest and opens it: the half `-addFiles:` cannot do, because an open panel can only
+ * choose something that already exists. */
+- (void)newFile:(id)sender;
+
+/* THE HALF WITHOUT THE PANEL: writes the file (with the skeleton its type asks for), puts it in the manifest, writes the
+ * manifest and opens the file. The panel's only job is to produce a path, so a probe can exercise everything else. */
+- (BOOL)fn_createFileAtPath:(NSString *)path error:(NSError **)error;
 - (void)saveDocument:(id)sender;
 - (void)toggleBuildLog:(id)sender;
 

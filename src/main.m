@@ -81,6 +81,7 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 - (void)clean:(id)sender;
 - (void)run:(id)sender;
 - (void)addFiles:(id)sender;
+- (void)newFile:(id)sender;
 - (void)saveDocument:(id)sender;
 - (void)toggleBuildLog:(id)sender;
 - (void)runSteps:(NSString *)list;
@@ -266,6 +267,11 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	[[self frontController] addFiles:sender];
 }
 
+- (void)newFile:(id)sender
+{
+	[[self frontController] newFile:sender];
+}
+
 - (void)showProjectInfo:(id)sender
 {
 	[[self frontController] showProjectInfo:sender];
@@ -328,6 +334,7 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	AGRow(project, @"Run", @selector(run:), self, @"r", NSCommandKeyMask);
 	AGRow(project, @"Stop", @selector(stop:), self, @".", NSCommandKeyMask);
 	[project addItem:[NSMenuItem separatorItem]];
+	AGRow(project, @"New File…", @selector(newFile:), self, @"n", NSCommandKeyMask);
 	AGRow(project, @"Add Files…", @selector(addFiles:), self, @"d", NSCommandKeyMask);
 	[project addItem:[NSMenuItem separatorItem]];
 	AGRow(project, @"Project Info…", @selector(showProjectInfo:), self, @"i", NSCommandKeyMask);

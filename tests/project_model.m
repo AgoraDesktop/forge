@@ -76,6 +76,16 @@ int main(void)
 		check([[[directory stringByAppendingPathComponent:AGProjectManifestName]
 			stringByAppendingString:@""] length] > 0, "the manifest path exists");
 
+		/* **A SAVE THROUGH THE PROJECT'S OWN URL MUST NOT DESTROY IT.** `-writeToURL:` re-points the directory URL,
+		 * and `[project writeToURL:[project projectDirectoryURL] error:NULL]` — the spelling every caller uses — used
+		 * to release the very object it was handed, leaving the project with no directory and refusing every later
+		 * file as "outside the project directory". */
+		check([project writeToURL:[project projectDirectoryURL] error:&error],
+		      "a project can save to its own directory");
+		check([[project projectDirectoryURL] path] != nil, "and still knows where it lives afterwards");
+		check([mainSource hasPrefix:[[project projectDirectoryURL] path]],
+		      "so a file inside it is still inside it");
+
 		check([project addFileAtAbsolutePath:mainSource error:&error], "a source inside the project is accepted");
 		check([project addFileAtAbsolutePath:header error:&error], "a header inside the project is accepted");
 		check([project addFileAtAbsolutePath:mainSource error:&error], "adding the same file twice is not an error");

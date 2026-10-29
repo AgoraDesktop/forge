@@ -101,6 +101,27 @@ configured with; the defaults are
 `FORGE_BUILD_DIAG=1` prints one line per build stage and read to stderr — the diagnostic a build that does not
 finish needs.
 
+## Files: adding one, and making one
+
+Two verbs, because they are two different intentions:
+
+- **Add Files… (⌘D)** chooses files that already exist, in the open panel, starting in the project directory.
+- **New File… (⌘N)** *creates* one: a save panel names it, the file is written with the skeleton its type asks for — a
+  translation unit for `.m`/`.c`, an include guard for `.h`, nothing at all for a type this program does not know — and
+  it joins the manifest and opens in the editor.
+
+**Both were broken, for one reason.** `AGProject -writeToURL:` re-points the project's directory URL at what it wrote, and
+it released that URL *before* reading the path out of it. The spelling every caller uses —
+`[project writeToURL:[project projectDirectoryURL] error:NULL]` — hands the method the project's own URL, so the release
+left the argument dangling: the path came back `nil`, the project was left with **no directory**, and every file after
+that was refused as "outside the project directory". The first Add of a session worked and every one after it did
+nothing. The path is copied before anything is released now, and `forge-new-file` pins it: two creates in a row, each
+with the manifest written in between.
+
+The open panel had a defect of its own: it inherited the save panel's `"Untitled"` name, so pressing **Open** with
+nothing selected asked for a file that does not exist and returned in silence — a button that does nothing. An open panel
+starts with an empty field now, and a press that cannot accept says what it is waiting for instead of doing nothing.
+
 ## The panes are `NSSplitView`s, and what a drag costs
 
 The three panes are **two nested `NSSplitView`s**: an outer one that stacks the top row above the log, and an inner one
@@ -143,7 +164,8 @@ stops.
 | `tests/build_sequence.m` (7 checks) | **Build, Clean, Build in ONE process** — the verbs a shell runs as three processes are one project window's session, and the state between them is the thing "it works the first time and fails after cleaning" was about |
 | `tests/text_layout.m` (10 checks) | **the last row is on the screen**: the editor's document is tall enough for its last line, a short file still fills its pane, and the log's document grows with what a build appended — measured as rectangles, and re-checked with the fix reverted (the editor came up 8 pt short and the log 15.6 pt) |
 | `tests/log_alignment.m` (6 checks) | **the log's first character sits at its pane's left edge**: the window is rendered at 1:1 in points, the log pane's edge read from the view, and the ink measured — the text system's own four points are the only inset there is |
-| `tests/pane_sizes.m` (16 checks) | **the dividers drag and the sizes are remembered**: two synthetic drags on the real window move the browser and the log by the distance dragged, the numbers land in `NSUserDefaults` (a scratch `FNX_CONFIG_ROOT`), a drag that would swallow the editor is clamped, the separation is an **eight-point gutter with the two resize cursors over it**, five motions inside one frame are applied as **one** move, and a **second window opens already the right size** |
+| `tests/pane_sizes.m` (16 checks) |
+| `tests/new_file.m` (13 checks) | **the dividers drag and the sizes are remembered**: two synthetic drags on the real window move the browser and the log by the distance dragged, the numbers land in `NSUserDefaults` (a scratch `FNX_CONFIG_ROOT`), a drag that would swallow the editor is clamped, the separation is an **eight-point gutter with the two resize cursors over it**, five motions inside one frame are applied as **one** move, and a **second window opens already the right size** |
 | `tests/toolbar_icons.m` (15 checks) | **the toolbar's pictures**: each kind answers a 24-point image with ink in it, and **no two kinds are the same picture** — a factory that forgot a `break` would be right in size and wrong in meaning |
 | `tests/toolbar_state.m` (17 checks) | **a verb's button says whether it can do anything**: on an unbuilt project Run, Clean and Stop are grey and Build is not; after a build Run and Clean are usable; while the product runs Stop is the only verb left (and Clean is off, because it would delete the product under it); after Stop, Run returns and Stop greys; after Clean, Clean and Run are both off |
 | `tests/project_info_view.m` (32 checks) | **the metadata pane, driven end to end**: it is a view with no session of any kind, it shows the project's values, Apply writes the manifest (and the plist the build will emit carries the new identifier), a refused identifier writes nothing and says why in the log, Revert drops what was typed, and the toolbar's Code | Info switch shows exactly one of the editor and the pane at a time |
