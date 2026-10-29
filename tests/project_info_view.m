@@ -222,6 +222,22 @@ int main(void)
 			check([[projectWindow editor] isHidden], "the editor stands aside");
 			check(![[projectWindow infoView] isHidden], "and the metadata pane is up");
 
+			/* **AND IT FILLS THE PANE IT CAME UP IN.** Both children are built with a frame taken from the content size
+			 * before the window exists, and only the visible one is placed — so the metadata pane kept its born 571x390
+			 * inside an 852x426 pane, 36 points low and 281 points narrow (MEASURED with `FORGE_LAYOUT_DIAG`). The swap is
+			 * what makes a pane visible, so the swap is what places it. */
+			{
+				NSView *pane = [projectWindow infoView];
+				NSRect frame = [pane frame];
+				NSRect bounds = [[pane superview] bounds];
+
+				check(fabs((double)(frame.size.width - bounds.size.width)) < 0.5
+				      && fabs((double)(frame.size.height - bounds.size.height)) < 0.5,
+				      "and it fills the detail pane rather than keeping the frame it was born with");
+				check(fabs((double)frame.origin.x) < 0.5 && fabs((double)frame.origin.y) < 0.5,
+				      "so the form starts at the top of its pane instead of sitting low in it");
+			}
+
 			[detailSwitch setSelectedSegment:0];
 			[(id)projectWindow performSelector:@selector(detailSegmentChanged:) withObject:detailSwitch];
 			check(![[projectWindow editor] isHidden], "and switching back shows the editor again");

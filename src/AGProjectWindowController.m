@@ -1091,6 +1091,11 @@ static NSError *AGForgeError(NSString *reason)
 	(void)sender;
 	[_editor setHidden:(segment != 0)];
 	[_infoView setHidden:(segment == 0)];
+	/* **THE PANE THAT JUST CAME UP HAS NEVER BEEN LAID OUT.** Both children are created with a frame computed from the
+	 * content size at build time, and `AGDetailView -fn_placePanes` only places the visible one — so the metadata pane kept
+	 * its born 571x390 inside a 852x426 pane, sitting 36 points low and 281 points narrow (MEASURED with
+	 * `FORGE_LAYOUT_DIAG`). The swap is what makes a pane visible, so the swap is what places it. */
+	[_detail fn_placePanes];
 	if (segment == 0) {
 		[[self window] makeFirstResponder:[_editor textView]];
 	} else {

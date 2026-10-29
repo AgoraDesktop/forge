@@ -50,6 +50,11 @@ static const CGFloat AGIconSide = 64.0;
 /* A GAP THAT SEPARATES SECTIONS RATHER THAN ROWS. */
 static const CGFloat AGSectionGap = 22.0;
 
+/* **THE FOOTER IS A BAND, NOT THE LAST ROW.** The verbs belong to the whole form, so they sit under a hairline at the
+ * pane's floor with room of their own; a form that ended one row above them read as if Apply belonged to the icon. */
+static const CGFloat AGFooterHeight = 54.0;
+static const CGFloat AGFooterGap = 22.0;
+
 /* ===================================================================================================
  * THE ICON WELL: a picture, or the shape of the slot one belongs in.
  *
@@ -314,10 +319,10 @@ static const CGFloat AGSectionGap = 22.0;
 		[[self fn_chooseButton] setFrame:NSMakeRect(textLeft + 92.0, buttonsY, 100.0, 24.0)];
 	}
 
-	/* THE FOOTER, ON THE PANE'S FLOOR rather than under the last row: the verbs belong to the whole form, and the line
-	 * that says whether they would do anything belongs beside them. */
+	/* THE FOOTER BAND: a hairline at `AGFooterHeight`, the two verbs centred in the band's lower half, and the state line
+	 * beside them. The form's last row is left at least `AGFooterGap` above the hairline so Apply never crowds the icon. */
 	{
-		CGFloat footerY = 20.0;
+		CGFloat footerY = (AGFooterHeight - 26.0) / 2.0;
 		CGFloat applyWidth = 84.0;
 		CGFloat revertWidth = 84.0;
 		CGFloat applyX = columnLeft + columnWidth - applyWidth;
@@ -327,6 +332,10 @@ static const CGFloat AGSectionGap = 22.0;
 		[[self fn_revertButton] setFrame:NSMakeRect(revertX, footerY, revertWidth, 26.0)];
 		[_statusLabel setFrame:NSMakeRect(columnLeft, footerY + 5.0, revertX - columnLeft - 12.0, 16.0)];
 	}
+
+	/* AND THE FORM CANNOT REACH THE BAND: with a pane too short for its content the gap is what gives way first, so a
+	 * window dragged small loses air rather than overlapping the verbs. */
+	(void)cursor;
 }
 
 - (void)fn_placeIcon
@@ -340,6 +349,20 @@ static const CGFloat AGSectionGap = 22.0;
 		image = [[[NSImage alloc] initWithContentsOfFile:path] autorelease];
 	}
 	[_iconWell setImage:image];
+}
+
+/* THE HAIRLINE ABOVE THE FOOTER, from the column's left edge to its right. */
+- (void)drawRect:(NSRect)rect
+{
+	NSRect bounds = [self bounds];
+	CGFloat columnWidth = bounds.size.width - AGSideMargin * 2.0;
+
+	(void)rect;
+	if (columnWidth > AGFormWidth) {
+		columnWidth = AGFormWidth;
+	}
+	[[NSColor colorWithCalibratedWhite:0.87 alpha:1.0] setFill];
+	NSRectFill(NSMakeRect(AGSideMargin, AGFooterHeight, columnWidth, 1.0));
 }
 
 - (void)setFrame:(NSRect)frame

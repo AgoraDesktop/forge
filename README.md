@@ -150,13 +150,21 @@ fields**:
 - **Bundle Identity**: Name, Identifier with the rule written under it, Version,
 - **Presentation**: the icon, shown in a well that is the shape of the slot it fills, with the file's name and
   Choose…/Remove beside it,
-- a footer that says `Up to date` or `Unsaved changes` and holds Revert and Apply — Apply live only when it would do
-  something, because a button that writes an unchanged manifest teaches nobody anything.
+- a footer **band** under a hairline at the pane's floor — `Up to date` or `Unsaved changes` on the left, Revert and
+  Apply on the right, and at least 22 points between the band and the form's last row so Apply never crowds the icon.
+  Apply is live only when it would do something, because a button that writes an unchanged manifest teaches nobody
+  anything.
 
 The captions used to draw as empty boxes: a non-editable `NSTextField` keeps its **bezel** unless `-setBezeled:NO` is
 said as well as `-setBordered:NO`, and only the second was. That single line is most of the difference between a form and
 a debug dump, and `forge-project-info` now checks it (`!isBezeled && !isBordered`) along with the state line, the two
 verbs and the field width.
+
+**THE PANE THAT COMES UP IS PLACED WHEN IT COMES UP.** Both children of the detail pane are built with a frame taken from
+the content size before the window exists, and only the visible one is laid out — so the metadata pane kept its born
+571x390 inside an 852x426 pane: 36 points low and 281 points narrow, which is what made the form look pushed down and
+cut short. The switch is what makes a pane visible, so the switch places it, and `forge-project-info` checks that the
+pane fills its parent afterwards.
 
 The layout is arithmetic in one place with **a cursor for each row's top edge**: the first version accumulated bottoms, so
 every gap had to be reasoned about backwards — which is how the identifier's hint ended up drawn across the version
