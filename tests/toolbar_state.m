@@ -112,12 +112,13 @@ int main(void)
 		controller = [[AGProjectWindowController alloc] initWithProject:project];
 		(void)[controller window];
 
-		/* 0. **THE ORDER IS PART OF THE DESIGN**: the two verbs that make something, a separator, the two that stop it, a
-		 * separator, the project edit — then the flexible space that pushes the mode switch to the right edge. */
+		/* 0. **THE ORDER IS PART OF THE DESIGN**: Build and Run and Export — what makes something, and what you do with what
+		 * was made — then a separator, then the two corrections, then the project edit, then the flexible space that
+		 * pushes the mode switch to the right edge. */
 		{
 			NSArray *items = [[[controller window] toolbar] items];
 			NSArray *wanted = [NSArray arrayWithObjects:
-				@"AGToolbarBuild", @"AGToolbarRun", NSToolbarSeparatorItemIdentifier,
+				@"AGToolbarBuild", @"AGToolbarRun", @"AGToolbarExport", NSToolbarSeparatorItemIdentifier,
 				@"AGToolbarClean", @"AGToolbarStop", NSToolbarSeparatorItemIdentifier,
 				@"AGToolbarAddFiles", NSToolbarFlexibleSpaceItemIdentifier,
 				@"AGToolbarDetail", nil];
@@ -135,7 +136,7 @@ int main(void)
 				}
 				printf("       toolbar order: %s\n", [[got componentsJoinedByString:@", "] UTF8String]);
 			}
-			check(matches, "the toolbar is Build, Run | Clean, Stop | Add, space, the mode switch");
+			check(matches, "the toolbar is Build, Run, Export | Clean, Stop | Add, space, the mode switch");
 		}
 
 		/* 1. NOTHING BUILT: Build is the only verb that can do anything. */

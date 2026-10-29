@@ -116,6 +116,7 @@ NSImage *AGToolbarIcon(AGToolbarIconKind kind)
 	case AGToolbarIconClean:	return fn_glyph_image(AGGlyph_trash[0], AGGlyph_trash[1]);
 	case AGToolbarIconStop:		return fn_glyph_image(AGGlyph_square[0], AGGlyph_square[1]);
 	case AGToolbarIconAdd:		return fn_glyph_image(AGGlyph_plus[0], AGGlyph_plus[1]);
+	case AGToolbarIconExport:	return fn_glyph_image(AGGlyph_package_export[0], AGGlyph_package_export[1]);
 	case AGToolbarIconCount:	break;
 	}
 #endif
@@ -169,6 +170,37 @@ NSImage *AGToolbarIcon(AGToolbarIconKind kind)
 	case AGToolbarIconStop:
 		/* A SQUARE, which is what stop is everywhere. */
 		fn_fill(5.0, 5.0, 14.0, 14.0);
+		break;
+	case AGToolbarIconExport:
+		/* **A BOX WITH ITS TOP LID OPEN AND AN ARROW LEAVING IT.** Drawn when the generated header is absent: the body is
+		 * a box, the lid is the two lines that meet above it, and the arrow is a shaft with a head — the shape Tabler's
+		 * `package-export` uses, so the fallback and the vendored art agree. */
+		{
+			NSBezierPath *box = [NSBezierPath bezierPath];
+			NSBezierPath *arrow = [NSBezierPath bezierPath];
+
+			[[NSColor controlTextColor] setStroke];
+			[box setLineWidth:1.6];
+			[box moveToPoint:NSMakePoint(3.5, 8.0)];
+			[box lineToPoint:NSMakePoint(11.0, 4.0)];
+			[box lineToPoint:NSMakePoint(18.5, 8.0)];
+			[box moveToPoint:NSMakePoint(3.5, 8.0)];
+			[box lineToPoint:NSMakePoint(3.5, 17.0)];
+			[box lineToPoint:NSMakePoint(11.0, 21.0)];
+			[box lineToPoint:NSMakePoint(11.0, 12.5)];
+			[box moveToPoint:NSMakePoint(11.0, 12.5)];
+			[box lineToPoint:NSMakePoint(18.5, 8.0)];
+			[box stroke];
+
+			[arrow setLineWidth:1.6];
+			[arrow moveToPoint:NSMakePoint(13.5, 17.0)];
+			[arrow lineToPoint:NSMakePoint(21.0, 17.0)];
+			[arrow moveToPoint:NSMakePoint(18.0, 14.0)];
+			[arrow lineToPoint:NSMakePoint(21.0, 17.0)];
+			[arrow moveToPoint:NSMakePoint(18.0, 20.0)];
+			[arrow lineToPoint:NSMakePoint(21.0, 17.0)];
+			[arrow stroke];
+		}
 		break;
 	case AGToolbarIconAdd:
 		/* A PLUS: two bars crossing at the tile's middle. */

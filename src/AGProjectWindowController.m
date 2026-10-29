@@ -62,6 +62,14 @@ static NSString *const AGToolbarRun = @"AGToolbarRun";
 static NSString *const AGToolbarStop = @"AGToolbarStop";
 static NSString *const AGToolbarDetail = @"AGToolbarDetail";
 static NSString *const AGToolbarAddFiles = @"AGToolbarAddFiles";
+static NSString *const AGToolbarExport = @"AGToolbarExport";
+
+static NSError *AGForgeError(NSString *reason)
+{
+	return [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileNoSuchFileError
+			       userInfo:[NSDictionary dictionaryWithObject:reason
+								   forKey:NSLocalizedDescriptionKey]];
+}
 
 
 /* ===================================================================================================
@@ -624,6 +632,16 @@ static NSString *const AGToolbarAddFiles = @"AGToolbarAddFiles";
 	if ([identifier isEqualToString:AGToolbarStop]) {
 		return running;
 	}
+	if ([identifier isEqualToString:AGToolbarExport]) {
+		/* **A PRODUCT THAT EXISTS AND NO BUILD IN FLIGHT**, which are the two questions `-exportApp:` asks: a greyed
+		 * button and a logged refusal can never disagree about whether there is something to export. */
+		return !building && [_builder hasProduct];
+	}
+	if ([identifier isEqualToString:AGToolbarExport]) {
+		/* **A PRODUCT THAT EXISTS AND NO BUILD IN FLIGHT**, which are the two questions `-exportApp:` asks: a greyed
+		 * button and a logged refusal can never disagree about whether there is something to export. */
+		return !building && [_builder hasProduct];
+	}
 	return YES;		/* the detail switch and Add a file are always usable */
 }
 
@@ -638,11 +656,12 @@ static NSString *const AGToolbarAddFiles = @"AGToolbarAddFiles";
 {
 	(void)toolbar;
 	/* **THE ORDER IS THE ONE A HAND EXPECTS: THE TWO VERBS THAT MAKE SOMETHING, THEN THE TWO THAT STOP IT, THEN THE TWO
-	 * THAT ONLY CHANGE THE PROJECT.** Build and Run are what a person presses; Clean and Stop are the corrections; Add is a
-	 * project edit, so it sits after a separator of its own. The flexible space pushes the Code/Info switch to the right
+	 * THAT ONLY CHANGE THE PROJECT.** Build and Run are what a person presses and Export is what you do with what Run
+	 * built, so it sits beside them; Clean and Stop are the corrections; Add is a project edit, so it gets a separator
+	 * of its own. The flexible space pushes the Code/Info switch to the right
 	 * edge, where a mode switch belongs, and the separators are the toolbar's own standard identifiers. */
 	return [NSArray arrayWithObjects:
-		AGToolbarBuild, AGToolbarRun,
+		AGToolbarBuild, AGToolbarRun, AGToolbarExport,
 		NSToolbarSeparatorItemIdentifier,
 		AGToolbarClean, AGToolbarStop,
 		NSToolbarSeparatorItemIdentifier,
@@ -689,6 +708,13 @@ static NSString *const AGToolbarAddFiles = @"AGToolbarAddFiles";
 						   toolTip:@"Stop the running product (or a build)"];
 
 		[item setImage:AGToolbarIcon(AGToolbarIconStop)];
+		return item;
+	}
+	if ([identifier isEqualToString:AGToolbarExport]) {
+		NSToolbarItem *item = [self fn_toolbarItem:identifier label:@"Export" action:@selector(exportApp:)
+						   toolTip:@"Copy the built application to a place you choose"];
+
+		[item setImage:AGToolbarIcon(AGToolbarIconExport)];
 		return item;
 	}
 	if ([identifier isEqualToString:AGToolbarDetail]) {
@@ -855,6 +881,25 @@ static NSString *const AGToolbarAddFiles = @"AGToolbarAddFiles";
 	 * which cut off the last row and left it unreachable by scrolling. */
 	[log sizeToFit];
 	[log scrollRangeToVisible:NSMakeRange([[log string] length], 0)];
+}
+
+/* **THE FILE LOG IS THE RECORD A PERSON READS AFTERWARDS**, and the builder writes there through its own door. A verb
+ * that leaves a trace — an export, a save — mirrors its line into the same file, so the log is one story rather than two
+ * (the view shows everything; the file shows what a build and its verbs did). */
+- (void)fn_mirrorToLogFile:(NSString *)text
+{
+	const char *path = getenv("FORGE_LOG_PATH");
+	FILE *file;
+
+	if (path == NULL || path[0] == '\0' || text == nil) {
+		return;
+	}
+	file = fopen(path, "a");
+	if (file == NULL) {
+		return;
+	}
+	fputs([text UTF8String], file);
+	fclose(file);
 }
 
 - (void)fn_clearLog
@@ -1096,7 +1141,9 @@ static NSString *const AGToolbarAddFiles = @"AGToolbarAddFiles";
 	NSError *error = nil;
 
 	(void)sender;
-	[panel setDirectory:[[_project projectDirectoryURL] path]];
+	/* **BESIDE THE PROJECT, NOT INSIDE IT.** The project directory is where the manifest and the sources live; an exported
+	 * application dropped in there becomes a file the browser lists and the next build walks past. */
+	[panel setDirectory:[[[_project projectDirectoryURL] path] stringByDeletingLastPathComponent]];
 	[panel setNameFieldStringValue:@"Untitled.m"];
 	[panel setMessage:@"Name the file to create in this project."];
 	if ([panel runModal] != NSOKButton) {
@@ -1165,6 +1212,92 @@ static NSString *const AGToolbarAddFiles = @"AGToolbarAddFiles";
 		return [NSString stringWithFormat:@"#ifndef %@\n#define %@\n\n#endif\n", guard, guard];
 	}
 	return @"";
+}
+
+/* ===================================================================================================
+ * EXPORT APP: THE PRODUCT LEAVES THE PROJECT.
+ *
+ * A build writes `build/<Name>.app`, which is a fine place to run from and a bad place to hand to somebody — it is inside
+ * a directory tree that `Clean` deletes. Export copies the bundle where a person says, with a save panel doing what a save
+ * panel does: naming the thing, offering a place, and refusing to leave an extension off.
+ *
+ * **THE COPY IS THE VERB, SO REFUSING IS CHEAPER THAN COPYING BADLY.** Export answers before it acts, like the other
+ * verbs: no product is a refusal with the reason in the log, and a build in flight is a refusal too, because the bundle on
+ * disk at that moment is half of one.
+ *
+ * The destination is replaced rather than merged. A `.app` whose Contents came half from this build and half from an
+ * older one is not the application that was just built, and a copy that leaves a stale file behind is the one outcome
+ * nobody can see.
+ * =================================================================================================== */
+- (void)exportApp:(id)sender
+{
+	NSSavePanel *panel = [NSSavePanel savePanel];
+	NSString *product = [[_project bundleURL] path];
+	NSError *error = nil;
+
+	(void)sender;
+	if (![self fn_productIsExportable]) {
+		return;		/* the refusal is already in the log */
+	}
+	[panel setTitle:@"Export App"];
+	[panel setMessage:@"Choose where to save the application bundle."];
+	/* **BESIDE THE PROJECT, NOT INSIDE IT.** The project directory is where the manifest and the sources live; an exported
+	 * application dropped in there becomes a file the browser lists and the next build walks past. */
+	[panel setDirectory:[[[_project projectDirectoryURL] path] stringByDeletingLastPathComponent]];
+	[panel setNameFieldStringValue:[product lastPathComponent]];
+	[panel setRequiredFileType:@"app"];
+	if ([panel runModal] != NSOKButton) {
+		return;
+	}
+	if (![self fn_exportProductToPath:[[panel URL] path] error:&error]) {
+		[self fn_log:[NSString stringWithFormat:@"error: %@\n",
+			(error != nil) ? [error localizedDescription] : @"the application could not be exported"]];
+	}
+}
+
+/* THE TWO QUESTIONS EVERY EXPORT ASKS, IN ONE PLACE so the toolbar's validation and the verb cannot disagree. */
+- (BOOL)fn_productIsExportable
+{
+	if ([_builder isBuilding]) {
+		[self fn_log:@"error: this project is building; export when it has finished\n"];
+		return NO;
+	}
+	if (![_builder hasProduct]) {
+		[self fn_log:@"error: there is no built application to export; build it first\n"];
+		return NO;
+	}
+	return YES;
+}
+
+/* THE DOOR WITHOUT THE PANEL, so a probe can export without a window server: the panel's only job is to produce a path. */
+- (BOOL)fn_exportProductToPath:(NSString *)path error:(NSError **)error
+{
+	NSFileManager *manager = [NSFileManager defaultManager];
+	NSString *product = [[_project bundleURL] path];
+
+	if (product == nil || ![_builder hasProduct]) {
+		if (error != NULL) {
+			*error = AGForgeError(@"There is no built application to export.");
+		}
+		return NO;
+	}
+	if ([path length] == 0) {
+		if (error != NULL) {
+			*error = AGForgeError(@"Nowhere was named to export to.");
+		}
+		return NO;
+	}
+	if ([manager fileExistsAtPath:path]) {
+		if (![manager removeItemAtPath:path error:error]) {
+			return NO;
+		}
+	}
+	if (![manager copyItemAtPath:product toPath:path error:error]) {
+		return NO;
+	}
+	[self fn_log:[NSString stringWithFormat:@"# Export: %@\n", path]];
+	[self fn_mirrorToLogFile:[NSString stringWithFormat:@"# Export: %@\n", path]];
+	return YES;
 }
 
 - (void)addFiles:(id)sender

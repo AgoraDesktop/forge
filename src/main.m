@@ -82,6 +82,7 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 - (void)run:(id)sender;
 - (void)addFiles:(id)sender;
 - (void)newFile:(id)sender;
+- (void)exportApp:(id)sender;
 - (void)saveDocument:(id)sender;
 - (void)toggleBuildLog:(id)sender;
 - (void)runSteps:(NSString *)list;
@@ -272,6 +273,11 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	[[self frontController] newFile:sender];
 }
 
+- (void)exportApp:(id)sender
+{
+	[[self frontController] exportApp:sender];
+}
+
 - (void)showProjectInfo:(id)sender
 {
 	[[self frontController] showProjectInfo:sender];
@@ -333,6 +339,8 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	AGRow(project, @"Clean", @selector(clean:), self, @"k", NSCommandKeyMask | NSShiftKeyMask);
 	AGRow(project, @"Run", @selector(run:), self, @"r", NSCommandKeyMask);
 	AGRow(project, @"Stop", @selector(stop:), self, @".", NSCommandKeyMask);
+	[project addItem:[NSMenuItem separatorItem]];
+	AGRow(project, @"Export App…", @selector(exportApp:), self, @"e", NSCommandKeyMask);
 	[project addItem:[NSMenuItem separatorItem]];
 	AGRow(project, @"New File…", @selector(newFile:), self, @"n", NSCommandKeyMask);
 	AGRow(project, @"Add Files…", @selector(addFiles:), self, @"d", NSCommandKeyMask);

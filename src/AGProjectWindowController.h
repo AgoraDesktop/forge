@@ -85,6 +85,13 @@
  * choose something that already exists. */
 - (void)newFile:(id)sender;
 
+/* COPIES THE BUILT BUNDLE WHERE A PERSON SAYS. A save panel does the naming and the placing; `-fn_exportProductToPath:error:`
+ * is the same verb without the panel, so a probe can drive it. It refuses when there is no product, and while a build is
+ * in flight, because the bundle on disk then is half of one. */
+- (void)exportApp:(id)sender;
+- (BOOL)fn_exportProductToPath:(NSString *)path error:(NSError **)error;
+- (BOOL)fn_productIsExportable;
+
 /* THE HALF WITHOUT THE PANEL: writes the file (with the skeleton its type asks for), puts it in the manifest, writes the
  * manifest and opens the file. The panel's only job is to produce a path, so a probe can exercise everything else. */
 - (BOOL)fn_createFileAtPath:(NSString *)path error:(NSError **)error;
