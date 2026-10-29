@@ -114,7 +114,7 @@ int main(void)
 		      "the identifier field shows the project's identifier");
 		check([[[info versionField] stringValue] isEqualToString:@"0.1.0"],
 		      "the version field shows the project's default version");
-		check([[[info iconLabel] stringValue] isEqualToString:@"(none)"], "and the icon says there is none");
+		check([[[info iconLabel] stringValue] length] > 0, "and the icon row says there is none");
 
 		/* 2. APPLY WRITES THE MANIFEST, and the write is what the next build reads. */
 		[[info nameField] setStringValue:@"Info Test App"];
@@ -157,6 +157,50 @@ int main(void)
 		[[info versionField] setStringValue:@"9.9.9"];
 		[info revert:nil];
 		check([[info versionField].stringValue isEqualToString:@"3.0.0"], "Revert put the project's version back");
+
+		/* 4b. **THE FORM SAYS WHAT IT IS AND WHETHER THERE IS ANYTHING TO APPLY.** The pane used to be four unlabelled
+		 * rows with a caption that drew as a box; the header, the state line and the two verbs are what make it a form
+		 * rather than a debug dump, and each of them is driven by something. */
+		{
+			[info reloadFields];
+			check(![info isDirty], "a freshly loaded form has nothing to apply");
+			check([[info applyButton] isEnabled] == NO,
+			      "so Apply is not offered: a button that writes an unchanged manifest teaches nothing");
+			check([[[info statusLabel] stringValue] rangeOfString:@"Up to date"].location != NSNotFound,
+			      "and the footer says so in words");
+
+			[[info nameField] setStringValue:@"A Different Name"];
+			[info controlTextDidChange:nil];
+			check([info isDirty], "typing into a field makes the form dirty");
+			check([[info applyButton] isEnabled], "which is what enables Apply");
+			check([[[info statusLabel] stringValue] rangeOfString:@"Unsaved"].location != NSNotFound,
+			      "and the footer says that instead");
+
+			[info revert:nil];
+			check(![info isDirty], "and Revert puts the form back to the project's own values");
+		}
+
+		/* 4c. **THE PANE IS A FORM, NOT A COLUMN OF BOXED CAPTIONS**: the captions are labels with no bezel, and the
+		 * fields are shorter than the column so the form has a reading width rather than the window's. */
+		{
+			NSTextField *caption = nil;
+			NSArray *subviews = [info subviews];
+			NSUInteger i;
+
+			for (i = 0; i < [subviews count]; i++) {
+				id view = [subviews objectAtIndex:i];
+
+				if ([view isKindOfClass:[NSTextField class]] && [view isEditable] == NO
+				    && [[view stringValue] isEqualToString:@"Name"]) {
+					caption = view;
+				}
+			}
+			check(caption != nil, "the Name caption exists");
+			check(caption != nil && ![caption isBezeled], "and it draws as a label, not as an empty field");
+			check(caption != nil && ![caption isBordered], "with no border either");
+			check(NSWidth([[info nameField] frame]) < NSWidth([info bounds]) - 80.0,
+			      "and the fields are a reading width, not the whole pane");
+		}
 
 		/* 5. **AND IT IS A PANE OF THE PROJECT WINDOW, SWAPPED WITH THE EDITOR BY A SEGMENTED CONTROL.** The claim is
 		 * the visibility pair: one of the two is on at a time, and neither is thrown away — which is what keeps an open

@@ -21,7 +21,7 @@
 
 #import <AppKit/NSView.h>
 
-@class AGProject, NSTextField;
+@class AGProject, NSTextField, NSButton, AGIconWell;
 
 @protocol AGProjectInfoViewDelegate <NSObject>
 @optional
@@ -40,7 +40,23 @@
 	NSTextField *_nameField;			/* RETAINED by this view's subviews */
 	NSTextField *_identifierField;
 	NSTextField *_versionField;
-	NSTextField *_iconLabel;
+	NSTextField *_iconLabel;			/* the icon's FILE NAME, beside the well */
+
+	/* THE HEADER, THE SECTION CAPTIONS AND THE FOOTER: what turns a column of fields into a form. */
+	NSTextField *_titleLabel;
+	NSTextField *_subtitleLabel;			/* the project's type and directory */
+	NSTextField *_identityCaption;
+	NSTextField *_presentationCaption;
+	NSTextField *_nameCaption;
+	NSTextField *_identifierCaption;
+	NSTextField *_versionCaption;
+	NSTextField *_iconCaption;
+	NSTextField *_identifierHint;			/* what reverse-DNS means, under the field that wants it */
+	NSTextField *_statusLabel;			/* "Up to date" or "Unsaved changes" */
+	NSButton *_applyButton;
+	NSButton *_removeIconButton;
+	AGIconWell *_iconWell;				/* RETAINED: the picture, or the empty slot for one */
+	NSString *_baseline;				/* RETAINED: the field values as the project has them, for the state line */
 }
 
 - (instancetype)initWithFrame:(NSRect)frame project:(AGProject *)project;
@@ -56,12 +72,19 @@
 - (void)apply:(id)sender;
 - (void)revert:(id)sender;
 - (void)chooseIcon:(id)sender;
+- (void)removeIcon:(id)sender;
 
 /* TEST DOORS, named as such. */
 - (NSTextField *)nameField;
 - (NSTextField *)identifierField;
 - (NSTextField *)versionField;
 - (NSTextField *)iconLabel;
+- (NSTextField *)statusLabel;
+- (NSButton *)applyButton;
+- (NSButton *)removeIconButton;
+
+/* IS THERE ANYTHING TO APPLY? The footer's state line and the two verbs are driven from this answer. */
+- (BOOL)isDirty;
 
 @end
 

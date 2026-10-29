@@ -122,6 +122,27 @@ The open panel had a defect of its own: it inherited the save panel's `"Untitled
 nothing selected asked for a file that does not exist and returned in silence — a button that does nothing. An open panel
 starts with an empty field now, and a press that cannot accept says what it is waiting for instead of doing nothing.
 
+## The info pane
+
+The toolbar's Code/Info switch swaps the editor for the project's metadata, and that pane is **a form, not a column of
+fields**:
+
+- a header (what the pane is, and which project it is about — type and directory),
+- **Bundle Identity**: Name, Identifier with the rule written under it, Version,
+- **Presentation**: the icon, shown in a well that is the shape of the slot it fills, with the file's name and
+  Choose…/Remove beside it,
+- a footer that says `Up to date` or `Unsaved changes` and holds Revert and Apply — Apply live only when it would do
+  something, because a button that writes an unchanged manifest teaches nobody anything.
+
+The captions used to draw as empty boxes: a non-editable `NSTextField` keeps its **bezel** unless `-setBezeled:NO` is
+said as well as `-setBordered:NO`, and only the second was. That single line is most of the difference between a form and
+a debug dump, and `forge-project-info` now checks it (`!isBezeled && !isBordered`) along with the state line, the two
+verbs and the field width.
+
+The layout is arithmetic in one place with **a cursor for each row's top edge**: the first version accumulated bottoms, so
+every gap had to be reasoned about backwards — which is how the identifier's hint ended up drawn across the version
+field's border.
+
 ## The panes are `NSSplitView`s, and what a drag costs
 
 The three panes are **two nested `NSSplitView`s**: an outer one that stacks the top row above the log, and an inner one
@@ -168,7 +189,7 @@ stops.
 | `tests/new_file.m` (13 checks) | **the dividers drag and the sizes are remembered**: two synthetic drags on the real window move the browser and the log by the distance dragged, the numbers land in `NSUserDefaults` (a scratch `FNX_CONFIG_ROOT`), a drag that would swallow the editor is clamped, the separation is an **eight-point gutter with the two resize cursors over it**, five motions inside one frame are applied as **one** move, and a **second window opens already the right size** |
 | `tests/toolbar_icons.m` (15 checks) | **the toolbar's pictures**: each kind answers a 24-point image with ink in it, and **no two kinds are the same picture** — a factory that forgot a `break` would be right in size and wrong in meaning |
 | `tests/toolbar_state.m` (17 checks) | **a verb's button says whether it can do anything**: on an unbuilt project Run, Clean and Stop are grey and Build is not; after a build Run and Clean are usable; while the product runs Stop is the only verb left (and Clean is off, because it would delete the product under it); after Stop, Run returns and Stop greys; after Clean, Clean and Run are both off |
-| `tests/project_info_view.m` (32 checks) | **the metadata pane, driven end to end**: it is a view with no session of any kind, it shows the project's values, Apply writes the manifest (and the plist the build will emit carries the new identifier), a refused identifier writes nothing and says why in the log, Revert drops what was typed, and the toolbar's Code | Info switch shows exactly one of the editor and the pane at a time |
+| `tests/project_info_view.m` (48 checks) | **the metadata pane, driven end to end**: it is a view with no session of any kind, it shows the project's values, Apply writes the manifest (and the plist the build will emit carries the new identifier), a refused identifier writes nothing and says why in the log, Revert drops what was typed, and the toolbar's Code | Info switch shows exactly one of the editor and the pane at a time |
 | `tests/line_numbers.m` (7 checks) | **the numbers sit beside the lines they number, at any scroll**: unscrolled the first is 1, ten lines down it is 11, fifty down it is 51, back at the top it is 1 again, and the run is contiguous — read back through the ruler's own walk, so a passing test cannot sit beside a disagreeing screen |
 | `tests/verb_conflicts.m` (33 checks) | **a verb pressed while another is running**: a second Build is refused in words and starts nothing; a Clean during a build is refused and that build still produces its product; a Clean with nothing running does work; and **a running PRODUCT is not a build** — Build, Clean and Run say the product is up rather than claiming a build is, and all three work again when it exits — or when **⌘.** stops it; Stop also ends a build and leaves the window usable |
 
