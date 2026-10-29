@@ -141,6 +141,19 @@ The open panel had a defect of its own: it inherited the save panel's `"Untitled
 nothing selected asked for a file that does not exist and returned in silence — a button that does nothing. An open panel
 starts with an empty field now, and a press that cannot accept says what it is waiting for instead of doing nothing.
 
+## Chrome is ASCII
+
+Every string Forge hands to the window server is ASCII — the title, the log, the menus, the pane's labels — and
+`forge-new-file` asserts it for the title after a file is opened.
+
+The reason is a defect one layer down, not a preference: **this tier's raster draws a non-ASCII character as the first byte
+of its UTF-8 sequence**, so the window title's em dash came out as `Hello â( main.m â( application` (the `â` is byte 0xE2 of
+U+2014, and what follows is a box). The rest of the em dashes and ellipses in the same voice went with it: the menu rows
+say `...` rather than `…`, the info pane's subtitle uses a hyphen, and the generated `CMakeLists.txt` header is ASCII too.
+
+When the raster can carry more, the separators can come back — the titles are built in one place
+(`-fn_openFile:` and `-fn_windowTitle`), so it is a two-string change.
+
 ## The info pane
 
 The toolbar's Code/Info switch swaps the editor for the project's metadata, and that pane is **a form, not a column of

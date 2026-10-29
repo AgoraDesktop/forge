@@ -312,8 +312,8 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	NSMenu *appMenu;
 	NSString *name = [[NSProcessInfo processInfo] processName];
 
-	AGRow(file, @"New Project…", @selector(newProject:), self, @"n", NSCommandKeyMask);
-	AGRow(file, @"Open Project…", @selector(openProject:), self, @"o", NSCommandKeyMask);
+	AGRow(file, @"New Project...", @selector(newProject:), self, @"n", NSCommandKeyMask);
+	AGRow(file, @"Open Project...", @selector(openProject:), self, @"o", NSCommandKeyMask);
 	[file addItem:[NSMenuItem separatorItem]];
 	AGRow(file, @"Save", @selector(saveDocument:), self, @"s", NSCommandKeyMask);
 	AGRow(file, @"Close Window", @selector(performClose:), nil, @"w", NSCommandKeyMask);
@@ -329,7 +329,7 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	/* FINDING IS THE TEXT SYSTEM'S, so the row sends the action a text view answers and the tag says which of
 	 * the ten panel actions it means (`NSTextView.h` documents the tag table). */
 	{
-		NSMenuItem *find = AGRow(edit, @"Find…", @selector(performFindPanelAction:), nil, @"f",
+		NSMenuItem *find = AGRow(edit, @"Find...", @selector(performFindPanelAction:), nil, @"f",
 					 NSCommandKeyMask);
 
 		[find setTag:1];	/* NSFindPanelActionShowFindPanel */
@@ -340,13 +340,13 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	AGRow(project, @"Run", @selector(run:), self, @"r", NSCommandKeyMask);
 	AGRow(project, @"Stop", @selector(stop:), self, @".", NSCommandKeyMask);
 	[project addItem:[NSMenuItem separatorItem]];
-	AGRow(project, @"Export App…", @selector(exportApp:), self, @"e", NSCommandKeyMask);
+	AGRow(project, @"Export App...", @selector(exportApp:), self, @"e", NSCommandKeyMask);
 	[project addItem:[NSMenuItem separatorItem]];
-	AGRow(project, @"New File…", @selector(newFile:), self, @"n", NSCommandKeyMask);
-	AGRow(project, @"Add Files…", @selector(addFiles:), self, @"d", NSCommandKeyMask);
+	AGRow(project, @"New File...", @selector(newFile:), self, @"n", NSCommandKeyMask);
+	AGRow(project, @"Add Files...", @selector(addFiles:), self, @"d", NSCommandKeyMask);
 	[project addItem:[NSMenuItem separatorItem]];
-	AGRow(project, @"Project Info…", @selector(showProjectInfo:), self, @"i", NSCommandKeyMask);
-	AGRow(project, @"Choose Icon…", @selector(chooseIcon:), self, nil, 0);
+	AGRow(project, @"Project Info...", @selector(showProjectInfo:), self, @"i", NSCommandKeyMask);
+	AGRow(project, @"Choose Icon...", @selector(chooseIcon:), self, nil, 0);
 
 	AGRow(view, @"Show Build Log", @selector(toggleBuildLog:), self, nil, 0);
 

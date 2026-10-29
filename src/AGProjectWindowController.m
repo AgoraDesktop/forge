@@ -857,7 +857,10 @@ static NSError *AGForgeError(NSString *reason)
 	}
 	[_editor setSource:source];
 	[_editor setFilePath:path];
-	[[self window] setTitle:[NSString stringWithFormat:@"%@ — %@ — %@",
+	/* **ASCII ONLY, BECAUSE THE TITLE IS DRAWN BY THIS TIER'S RASTER.** An em dash here came out as "â(" followed by a
+	 * box — the raster draws a non-ASCII character as the first byte of its UTF-8 sequence — so the title read "Hello
+	 * â( main.m â( application". The separator is a plain hyphen until the raster can carry more. */
+	[[self window] setTitle:[NSString stringWithFormat:@"%@ - %@ - %@",
 		[_project name], [file displayName], [_project typeName]]];
 	[[self window] makeFirstResponder:[_editor textView]];
 }

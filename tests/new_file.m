@@ -86,6 +86,19 @@ int main(void)
 		check([project projectDirectoryURL] != nil, "the project still knows its directory after a save");
 		check([[[project projectDirectoryURL] path] length] > 0, "and the path it knows is a path");
 
+		/* 1c. **THE WINDOW TITLE IS ASCII**, because this tier's raster draws a non-ASCII character as the first byte of
+		 * its UTF-8 sequence: the separator was an em dash and the title read `Hello â( Extra.m â( application`. The
+		 * rule is Forge's chrome is ASCII until the raster can carry more, and this is where a file gets opened. */
+		{
+			NSString *title = [[controller window] title];
+
+			check([title length] > 0, "the window has a title after opening the file");
+			check([title canBeConvertedToEncoding:NSASCIIStringEncoding],
+			      "and the title is ASCII, so the raster can draw it");
+			check([title rangeOfString:@"Extra.m"].location != NSNotFound,
+			      "and the title names the file that is open");
+		}
+
 		/* 2. IT IS IN THE MANIFEST, and the manifest on disk says so too. */
 		{
 			NSUInteger i;
