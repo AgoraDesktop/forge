@@ -1,0 +1,88 @@
+/*
+ * AGProjectWindowController.h — the project window: browser, editor, log, and the verbs between them.
+ *
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * **THIS IS THE PROJECT CENTER'S CENTRAL WINDOW, IN THE ORDER IT PUTS THINGS.** A browser down the left, grouped by
+ * what the files are; the file on the right in a source editor with line numbers; the build's own output below it,
+ * where a person can read it against the code that produced it. The toolbar carries the four verbs the reference
+ * project manager's does — Build, Clean, Run — plus the one this tier needs (add a file), and the menu carries the
+ * same verbs so a key equivalent works when the toolbar is hidden.
+ *
+ * **THE BUILDER IS A DELEGATE RATHER THAN A THREAD.** `AGBuilder` runs the toolchain as a child process and reads
+ * its pipe on the run loop; this controller is told as bytes arrive and appends them to the log. There is no
+ * dispatch queue anywhere in the middle, which is what keeps the window responding while a build runs: the
+ * subprocess is the concurrency.
+ */
+#ifndef AGPROJECTWINDOWCONTROLLER_H
+#define AGPROJECTWINDOWCONTROLLER_H
+
+#import <AppKit/NSView.h>
+#import <AppKit/NSWindowController.h>
+
+@class AGProject, AGSourceEditor, AGBuilder, AGProjectInfoView, NSOutlineView, NSTextView, NSSegmentedControl;
+
+@interface AGProjectWindowController : NSWindowController
+{
+	AGProject *_project;		/* RETAINED */
+	AGSourceEditor *_editor;	/* RETAINED */
+	NSTextView *_logView;		/* RETAINED */
+	NSOutlineView *_outline;	/* RETAINED */
+	AGBuilder *_builder;		/* RETAINED */
+	NSMutableArray *_groups;	/* RETAINED: { title = NSString, files = NSArray } in browser order */
+	BOOL _openedFirstFile;		/* the launch-time convenience, done once */
+	AGProjectInfoView *_infoView;		/* RETAINED: the metadata pane, swapped with the editor */
+	NSView *_logPane;			/* RETAINED: the log's container, which sizes its document */
+	NSView *_detail;			/* RETAINED by the panes view; holds the editor and the info pane */
+	NSSegmentedControl *_detailSwitch;	/* RETAINED by the toolbar item's view */
+}
+
+- (instancetype)initWithProject:(AGProject *)project;
+
+- (AGProject *)project;
+
+/* THE LOG, AS TEXT. The pane is a view; the text is what a test can read, and what a person copies when they report
+ * that a verb did something they did not ask for. */
+- (NSString *)buildLogText;
+- (NSTextView *)buildLogTextView;
+- (AGSourceEditor *)editor;
+
+/* TEST DOORS for the detail pane: the switch that chooses between Code and Info, and the metadata pane itself. */
+- (NSSegmentedControl *)detailSwitch;
+
+/* THE TOOLBAR'S STATE, ASKED AGAIN. A test door and the door the controller itself uses after every verb and every
+ * finished stage; the answer lives in `-validateToolbarItem:`. */
+- (void)refreshToolbarState;
+
+/* TEST DOORS for the panes: the view that places them, and the two numbers its dividers move. */
+- (NSView *)panesView;
+- (CGFloat)browserPaneWidth;
+
+/* THE THREE PANES' FRAMES, in browser/detail/log order. A test that indexed `-subviews` was reading the drag overlay as
+ * the browser the moment that overlay existed — this is the order a caller means. */
+- (NSArray *)paneViewFrames;
+- (CGFloat)logPaneHeight;
+- (AGProjectInfoView *)infoView;
+- (AGBuilder *)builder;
+
+/* THE VERBS. Each is an action so a menu row and a toolbar item can share it, and each is `-validate…`-free:
+ * one that cannot run says so in the log rather than going grey without a reason. */
+- (void)build:(id)sender;
+- (void)clean:(id)sender;
+- (void)run:(id)sender;
+- (void)stop:(id)sender;
+
+/* **THE APPLICATION'S OWN METADATA, EDITED WHERE IT LIVES.** A bundle's identifier, name, version and icon are keys in
+ * the project file — not build settings and not a plist a person edits by hand — so the interface that changes them
+ * changes the project, and the next build's `Info.plist` says what the interface said. */
+- (void)showProjectInfo:(id)sender;
+- (void)chooseIcon:(id)sender;
+- (void)addFiles:(id)sender;
+- (void)saveDocument:(id)sender;
+- (void)toggleBuildLog:(id)sender;
+
+@end
+
+#endif /* AGPROJECTWINDOWCONTROLLER_H */
