@@ -86,17 +86,24 @@ int main(void)
 		check([project projectDirectoryURL] != nil, "the project still knows its directory after a save");
 		check([[[project projectDirectoryURL] path] length] > 0, "and the path it knows is a path");
 
-		/* 1c. **THE WINDOW TITLE IS ASCII**, because this tier's raster draws a non-ASCII character as the first byte of
-		 * its UTF-8 sequence: the separator was an em dash and the title read `Hello â( Extra.m â( application`. The
-		 * rule is Forge's chrome is ASCII until the raster can carry more, and this is where a file gets opened. */
+		/* 1c. **THE TITLE'S SEPARATOR IS ONE CHARACTER, NOT ITSUTF-8 BYTES.** A format string's literal chunk used to reach
+		 * the sink a byte at a time, so the em dash between the parts arrived as `â` and two boxes. What this asserts is the
+		 * character: the title carries U+2014 twice, once on each side of the file's name. */
 		{
 			NSString *title = [[controller window] title];
+			NSUInteger i, dashes = 0;
 
 			check([title length] > 0, "the window has a title after opening the file");
-			check([title canBeConvertedToEncoding:NSASCIIStringEncoding],
-			      "and the title is ASCII, so the raster can draw it");
 			check([title rangeOfString:@"Extra.m"].location != NSNotFound,
 			      "and the title names the file that is open");
+			for (i = 0; i < [title length]; i++) {
+				if ([title characterAtIndex:i] == 0x2014) {
+					dashes++;
+				}
+			}
+			check(dashes == 2, "and its two separators are em dashes, not the bytes of one");
+			check([title canBeConvertedToEncoding:NSASCIIStringEncoding] == NO,
+			      "which is why the title is not ASCII any more");
 		}
 
 		/* 2. IT IS IN THE MANIFEST, and the manifest on disk says so too. */

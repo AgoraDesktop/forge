@@ -141,18 +141,23 @@ The open panel had a defect of its own: it inherited the save panel's `"Untitled
 nothing selected asked for a file that does not exist and returned in silence — a button that does nothing. An open panel
 starts with an empty field now, and a press that cannot accept says what it is waiting for instead of doing nothing.
 
-## Chrome is ASCII
+## Typography, and the bug that looked like a raster defect
 
-Every string Forge hands to the window server is ASCII — the title, the log, the menus, the pane's labels — and
-`forge-new-file` asserts it for the title after a file is opened.
+The window title is `Hello — café.m — application`, with em dashes and whatever the file is called, and the menu rows say
+`New File…`. That is worth a section because it looked impossible for a while.
 
-The reason is a defect one layer down, not a preference: **this tier's raster draws a non-ASCII character as the first byte
-of its UTF-8 sequence**, so the window title's em dash came out as `Hello â( main.m â( application` (the `â` is byte 0xE2 of
-U+2014, and what follows is a box). The rest of the em dashes and ellipses in the same voice went with it: the menu rows
-say `...` rather than `…`, the info pane's subtitle uses a hyphen, and the generated `CMakeLists.txt` header is ASCII too.
+**THE FINDING WAS "THIS TIER'S RASTER DRAWS A NON-ASCII CHARACTER AS THE FIRST BYTE OF ITS UTF-8 SEQUENCE" — AND IT WAS
+WRONG.** A title built as `@"%@ — %@"` arrived as `Hello â( main.m`: `â` is 0xE2, the first byte of U+2014, followed by a
+box per remaining byte. The conclusion drawn at the time was that the raster could not carry non-ASCII, so Forge's chrome
+was reduced to ASCII: a hyphen in the title, `...` in the menus, a hyphen in the info pane's subtitle.
 
-When the raster can carry more, the separators can come back — the titles are built in one place
-(`-fn_openFile:` and `-fn_windowTitle`), so it is a two-string change.
+The raster was innocent. `libagora-base`'s **format scanner** walked the format string's bytes and emitted one byte per
+literal chunk, so a three-byte character was handed over as three separate chunks — the split happened before any glyph
+was looked up. `@"café.m"` as a literal always drew correctly, and so did the same name read from the manifest.
+
+The scanner takes whole UTF-8 sequences now (`libagora-base/NSString.m`, `tests/constant_string_units.m`), and the
+typography came back: em dashes in the title, ellipses in the menus, and a test in `forge-new-file` counts the two U+2014
+characters in the title rather than asserting it is ASCII.
 
 ## The info pane
 

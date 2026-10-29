@@ -462,7 +462,7 @@ static NSError *AGForgeError(NSString *reason)
 	 * out on screen as the UTF-8 bytes of a zero-width space, which is the appkit's title decode rather than this
 	 * file's bytes (they are correct). The sentence reads the same with a hyphen, and the finding is recorded here
 	 * rather than left to look like a typo in a screenshot. */
-	return [NSString stringWithFormat:@"%@ - %@", [_project name], [_project typeName]];
+	return [NSString stringWithFormat:@"%@ — %@", [_project name], [_project typeName]];
 }
 
 /* ---------------------------------------------------------------------------------------------------
@@ -857,10 +857,11 @@ static NSError *AGForgeError(NSString *reason)
 	}
 	[_editor setSource:source];
 	[_editor setFilePath:path];
-	/* **ASCII ONLY, BECAUSE THE TITLE IS DRAWN BY THIS TIER'S RASTER.** An em dash here came out as "â(" followed by a
-	 * box — the raster draws a non-ASCII character as the first byte of its UTF-8 sequence — so the title read "Hello
-	 * â( main.m â( application". The separator is a plain hyphen until the raster can carry more. */
-	[[self window] setTitle:[NSString stringWithFormat:@"%@ - %@ - %@",
+	/* **THE TYPOGRAPHIC SEPARATOR IS BACK, BECAUSE THE BUG WAS NEVER THE RASTER'S.** A format string's literal chunk used
+	 * to be handed to the sink ONE BYTE at a time, so `—` (E2 80 94) arrived as three units and drew as `â` and two
+	 * boxes. `libagora-base/NSString.m`'s format scanner emits whole UTF-8 sequences now, and this title is the case that
+	 * found it: `Hello — main.m — application`. */
+	[[self window] setTitle:[NSString stringWithFormat:@"%@ — %@ — %@",
 		[_project name], [file displayName], [_project typeName]]];
 	[[self window] makeFirstResponder:[_editor textView]];
 }
