@@ -317,12 +317,16 @@ static NSError *AGForgeError(NSString *reason)
 @end
 
 /* ===================================================================================================
- * THE LOG PANE, WHICH IS A SCROLL VIEW AND A DOCUMENT THAT MUST TRACK ITS WIDTH.
+ * THE LOG PANE, WHICH IS A SCROLL VIEW AND A DOCUMENT THAT TRACKS ITS WIDTH.
  *
- * **A CLIP VIEW CENTRES A DOCUMENT NARROWER THAN ITSELF**, and the first version of this pane left the log's text view at
- * the width it was born with — so when the log grew to the window's full width the text sat in the middle of its pane, 131
- * points in, looking like an indent nothing had asked for (MEASURED by `tests/log_alignment.m`). The fix is the one the
- * editor already uses: the container places its children on every frame change, so the document is always its clip wide.
+ * **THE WIDTH IS THE WRAP'S BUSINESS, NOT THE LAYOUT'S.** The log's text view is kept as wide as its clip view because a
+ * wrapping document has to be told how wide the pane is; it starts at the width it is born with, which is the width of the
+ * empty frame, and a paragraph laid out to that width would wrap early forever.
+ *
+ * The HEIGHT is left to the text view, and a log shorter than its pane now sits at the TOP of it — it used to be pushed to
+ * the middle by a clip view that centred any document smaller than itself (see `libagora-app/NSClipView.m`
+ * `-constrainScrollPoint:`), and this pane worked around that by inventing a document as tall as the clip. That workaround
+ * is gone with the rule: a log begins at its first line.
  * =================================================================================================== */
 @interface AGLogPane : NSView
 {
@@ -339,9 +343,6 @@ static NSError *AGForgeError(NSString *reason)
 	NSRect bounds = [self bounds];
 	NSSize document = NSMakeSize(bounds.size.width, [_textView frame].size.height);
 
-	if (document.height < bounds.size.height) {
-		document.height = bounds.size.height;
-	}
 	[_scrollView setFrame:bounds];
 	[_textView setFrameSize:document];
 }
