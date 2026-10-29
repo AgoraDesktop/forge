@@ -101,6 +101,28 @@ configured with; the defaults are
 `FORGE_BUILD_DIAG=1` prints one line per build stage and read to stderr — the diagnostic a build that does not
 finish needs.
 
+## Removing a file from the project
+
+**Remove File from Project (⌘⌫)**, and the Remove button beside Add, take the browser's selection out of `Project.agproj`.
+That is a **project edit, not a delete**: the file stays on disk, the log says so (`# Removed: Headers/Notes.h (the file is
+still on disk)`), and Add Files brings it back. There is no confirmation sheet for the same reason — nothing on disk
+changes.
+
+It answers before it acts like the other verbs: a group (or nothing) under the selection is a refusal with the reason in
+the log, and so is a file the project does not carry. `-validateToolbarItem:` offers the button only while a **file** row is
+selected and no build is in flight, and every selection change re-asks — a button that is live for a group would be a
+button that lies.
+
+Two consequences worth stating: an **empty category disappears** with its last file (the browser is built from the
+project's categories), and **a file that was open goes with it** — the editor is cleared and the title drops back to
+`project — type`, because leaving the text on screen under a title naming it would be a window claiming something the
+manifest denies.
+
+`AGProject -removeFile:error:` finds a member **by path**, not by identity, so a caller holding an equivalent
+`AGProjectFile` names the same member; a path that is not in the project is a refusal with a reason.
+`forge-remove-file` (17 checks) covers the pair that matters — gone from the manifest, still on disk — plus the categories,
+the log, both refusals, and the toolbar item's own press: select the row, validate, fire the action.
+
 ## Exporting the app
 
 **Export App… (⌘E)**, and the Export button beside Run, copies the built `.app` bundle wherever a save panel is pointed —
@@ -232,7 +254,8 @@ stops.
 | `tests/log_alignment.m` (6 checks) | **the log's first character sits at its pane's left edge**: the window is rendered at 1:1 in points, the log pane's edge read from the view, and the ink measured — the text system's own four points are the only inset there is |
 | `tests/pane_sizes.m` (16 checks) |
 | `tests/new_file.m` (13 checks) |
-| `tests/export.m` (16 checks) | **the dividers drag and the sizes are remembered**: two synthetic drags on the real window move the browser and the log by the distance dragged, the numbers land in `NSUserDefaults` (a scratch `FNX_CONFIG_ROOT`), a drag that would swallow the editor is clamped, the separation is an **eight-point gutter with the two resize cursors over it**, five motions inside one frame are applied as **one** move, and a **second window opens already the right size** |
+| `tests/export.m` (16 checks) |
+| `tests/remove_file.m` (17 checks) | **the dividers drag and the sizes are remembered**: two synthetic drags on the real window move the browser and the log by the distance dragged, the numbers land in `NSUserDefaults` (a scratch `FNX_CONFIG_ROOT`), a drag that would swallow the editor is clamped, the separation is an **eight-point gutter with the two resize cursors over it**, five motions inside one frame are applied as **one** move, and a **second window opens already the right size** |
 | `tests/toolbar_icons.m` (15 checks) | **the toolbar's pictures**: each kind answers a 24-point image with ink in it, and **no two kinds are the same picture** — a factory that forgot a `break` would be right in size and wrong in meaning |
 | `tests/toolbar_state.m` (17 checks) | **a verb's button says whether it can do anything**: on an unbuilt project Run, Clean and Stop are grey and Build is not; after a build Run and Clean are usable; while the product runs Stop is the only verb left (and Clean is off, because it would delete the product under it); after Stop, Run returns and Stop greys; after Clean, Clean and Run are both off |
 | `tests/project_info_view.m` (48 checks) | **the metadata pane, driven end to end**: it is a view with no session of any kind, it shows the project's values, Apply writes the manifest (and the plist the build will emit carries the new identifier), a refused identifier writes nothing and says why in the log, Revert drops what was typed, and the toolbar's Code | Info switch shows exactly one of the editor and the pane at a time |

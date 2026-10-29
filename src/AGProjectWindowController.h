@@ -22,7 +22,8 @@
 #import <AppKit/NSView.h>
 #import <AppKit/NSWindowController.h>
 
-@class AGProject, AGSourceEditor, AGBuilder, AGProjectInfoView, NSOutlineView, NSTextView, NSSegmentedControl;
+@class AGProject, AGProjectFile, AGSourceEditor, AGBuilder, AGProjectInfoView, NSOutlineView, NSTextView,
+       NSSegmentedControl;
 
 @interface AGProjectWindowController : NSWindowController
 {
@@ -90,6 +91,14 @@
  * in flight, because the bundle on disk then is half of one. */
 - (void)exportApp:(id)sender;
 - (BOOL)fn_exportProductToPath:(NSString *)path error:(NSError **)error;
+
+/* TAKES THE BROWSER'S SELECTION OUT OF THE MANIFEST, not off the disk. No selection is a refusal with the reason in the log;
+ * `-fn_removeFile:error:` is the same verb for a named file, so a probe needs no browser. */
+- (void)removeSelectedFile:(id)sender;
+- (BOOL)fn_removeFile:(AGProjectFile *)file error:(NSError **)error;
+
+/* THE BROWSER ITSELF, so a probe can put the selection a person would put and then ask the toolbar item to fire. */
+- (NSOutlineView *)browserOutline;
 - (BOOL)fn_productIsExportable;
 
 /* THE HALF WITHOUT THE PANEL: writes the file (with the skeleton its type asks for), puts it in the manifest, writes the

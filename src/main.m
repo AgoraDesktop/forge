@@ -81,6 +81,7 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 - (void)clean:(id)sender;
 - (void)run:(id)sender;
 - (void)addFiles:(id)sender;
+- (void)removeSelectedFile:(id)sender;
 - (void)newFile:(id)sender;
 - (void)exportApp:(id)sender;
 - (void)saveDocument:(id)sender;
@@ -268,6 +269,11 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	[[self frontController] addFiles:sender];
 }
 
+- (void)removeSelectedFile:(id)sender
+{
+	[[self frontController] removeSelectedFile:sender];
+}
+
 - (void)newFile:(id)sender
 {
 	[[self frontController] newFile:sender];
@@ -344,6 +350,7 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	[project addItem:[NSMenuItem separatorItem]];
 	AGRow(project, @"New File…", @selector(newFile:), self, @"n", NSCommandKeyMask);
 	AGRow(project, @"Add Files…", @selector(addFiles:), self, @"d", NSCommandKeyMask);
+	AGRow(project, @"Remove File from Project", @selector(removeSelectedFile:), self, @"\b", NSCommandKeyMask);
 	[project addItem:[NSMenuItem separatorItem]];
 	AGRow(project, @"Project Info…", @selector(showProjectInfo:), self, @"i", NSCommandKeyMask);
 	AGRow(project, @"Choose Icon…", @selector(chooseIcon:), self, nil, 0);

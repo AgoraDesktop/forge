@@ -117,6 +117,7 @@ NSImage *AGToolbarIcon(AGToolbarIconKind kind)
 	case AGToolbarIconStop:		return fn_glyph_image(AGGlyph_square[0], AGGlyph_square[1]);
 	case AGToolbarIconAdd:		return fn_glyph_image(AGGlyph_plus[0], AGGlyph_plus[1]);
 	case AGToolbarIconExport:	return fn_glyph_image(AGGlyph_package_export[0], AGGlyph_package_export[1]);
+	case AGToolbarIconRemoveFile:	return fn_glyph_image(AGGlyph_file_minus[0], AGGlyph_file_minus[1]);
 	case AGToolbarIconCount:	break;
 	}
 #endif
@@ -200,6 +201,27 @@ NSImage *AGToolbarIcon(AGToolbarIconKind kind)
 			[arrow moveToPoint:NSMakePoint(18.0, 20.0)];
 			[arrow lineToPoint:NSMakePoint(21.0, 17.0)];
 			[arrow stroke];
+		}
+		break;
+	case AGToolbarIconRemoveFile:
+		/* **A PAGE WITH A MINUS IN IT**, drawn when the generated header is absent: the page is a rectangle with a folded
+		 * corner, and the minus is one bar — the shape Tabler's `file-minus` uses, so the fallback and the art agree. */
+		{
+			NSBezierPath *page = [NSBezierPath bezierPath];
+
+			[[NSColor controlTextColor] setStroke];
+			[page setLineWidth:1.6];
+			[page moveToPoint:NSMakePoint(6.0, 3.0)];
+			[page lineToPoint:NSMakePoint(14.0, 3.0)];
+			[page lineToPoint:NSMakePoint(19.0, 8.0)];
+			[page lineToPoint:NSMakePoint(19.0, 21.0)];
+			[page lineToPoint:NSMakePoint(6.0, 21.0)];
+			[page closePath];
+			[page moveToPoint:NSMakePoint(14.0, 3.0)];
+			[page lineToPoint:NSMakePoint(14.0, 8.0)];
+			[page lineToPoint:NSMakePoint(19.0, 8.0)];
+			[page stroke];
+			fn_bar(9.0, 14.5, 16.0, 14.5, 1.8);
 		}
 		break;
 	case AGToolbarIconAdd:

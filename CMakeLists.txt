@@ -311,6 +311,25 @@ if(BUILD_TESTING)
   target_compile_definitions(forge_pane_sizes PRIVATE
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
       AG_BUNDLE_ARCH="${_bundle_arch}")
+  add_executable(forge_remove_file
+      tests/remove_file.m
+      src/AGProject.m
+      src/AGProjectWindowController.m
+      src/AGSourceEditor.m
+      src/AGProjectInfoView.m
+      src/AGBuilder.m
+      src/AGToolbarIcons.m)
+  target_include_directories(forge_remove_file PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+      "${AGORA_TOOLBAR_GLYPH_DIR}")
+  if(AGORA_TOOLBAR_GLYPHS)
+    add_dependencies(forge_remove_file agora_toolbar_glyphs)
+  endif()
+  target_link_libraries(forge_remove_file PRIVATE AgoraApp::App)
+  target_compile_definitions(forge_remove_file PRIVATE
+      AG_BUNDLE_PLATFORM="${_bundle_platform}"
+      AG_BUNDLE_ARCH="${_bundle_arch}")
+  add_test(NAME forge-remove-file COMMAND forge_remove_file)
+
   add_executable(forge_export
       tests/export.m
       src/AGProject.m
@@ -400,7 +419,7 @@ if(BUILD_TESTING)
   set(_forge_tests
       forge-project-model forge-diagnostics forge-end-to-end forge-build-sequence forge-verb-conflicts
       forge-text-layout forge-line-numbers forge-project-info forge-toolbar-state forge-toolbar-icons
-      forge-pane-sizes forge-log-alignment forge-new-file forge-export)
+      forge-pane-sizes forge-log-alignment forge-new-file forge-export forge-remove-file)
   foreach(_forge_test IN LISTS _forge_tests)
     set_tests_properties(${_forge_test} PROPERTIES ENVIRONMENT
         "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib;FNX_CONFIG_ROOT=${CMAKE_CURRENT_BINARY_DIR}/test-config")

@@ -63,6 +63,7 @@ static NSString *const AGToolbarStop = @"AGToolbarStop";
 static NSString *const AGToolbarDetail = @"AGToolbarDetail";
 static NSString *const AGToolbarAddFiles = @"AGToolbarAddFiles";
 static NSString *const AGToolbarExport = @"AGToolbarExport";
+static NSString *const AGToolbarRemoveFile = @"AGToolbarRemoveFile";
 
 static NSError *AGForgeError(NSString *reason)
 {
@@ -643,6 +644,11 @@ static NSError *AGForgeError(NSString *reason)
 		 * button and a logged refusal can never disagree about whether there is something to export. */
 		return !building && [_builder hasProduct];
 	}
+	if ([identifier isEqualToString:AGToolbarRemoveFile]) {
+		/* **A FILE, NOT A GROUP, AND NO BUILD IN FLIGHT.** Removing a file while a build walks the manifest would be two
+		 * edits to one list; the button greys until the build ends, exactly as the others do. */
+		return !building && ([self fn_selectedFile] != nil);
+	}
 	return YES;		/* the detail switch and Add a file are always usable */
 }
 
@@ -666,7 +672,7 @@ static NSError *AGForgeError(NSString *reason)
 		NSToolbarSeparatorItemIdentifier,
 		AGToolbarClean, AGToolbarStop,
 		NSToolbarSeparatorItemIdentifier,
-		AGToolbarAddFiles,
+		AGToolbarAddFiles, AGToolbarRemoveFile,
 		NSToolbarFlexibleSpaceItemIdentifier,
 		AGToolbarDetail, nil];
 }
@@ -716,6 +722,13 @@ static NSError *AGForgeError(NSString *reason)
 						   toolTip:@"Copy the built application to a place you choose"];
 
 		[item setImage:AGToolbarIcon(AGToolbarIconExport)];
+		return item;
+	}
+	if ([identifier isEqualToString:AGToolbarRemoveFile]) {
+		NSToolbarItem *item = [self fn_toolbarItem:identifier label:@"Remove" action:@selector(removeSelectedFile:)
+						   toolTip:@"Remove the selected file from the project (it stays on disk)"];
+
+		[item setImage:AGToolbarIcon(AGToolbarIconRemoveFile)];
 		return item;
 	}
 	if ([identifier isEqualToString:AGToolbarDetail]) {
@@ -830,6 +843,8 @@ static NSError *AGForgeError(NSString *reason)
 	NSOutlineView *outline = [notification object];
 	id item = [outline itemAtRow:[outline selectedRow]];
 
+	/* THE SELECTION DECIDES WHETHER REMOVE IS OFFERED, so every change re-asks. */
+	[self refreshToolbarState];
 	if (![item isKindOfClass:[AGProjectFile class]]) {
 		return;
 	}
@@ -1307,6 +1322,96 @@ static NSError *AGForgeError(NSString *reason)
 	}
 	[self fn_log:[NSString stringWithFormat:@"# Export: %@\n", path]];
 	[self fn_mirrorToLogFile:[NSString stringWithFormat:@"# Export: %@\n", path]];
+	return YES;
+}
+
+/* ===================================================================================================
+ * REMOVING A FILE FROM THE PROJECT, WHICH IS NOT DELETING IT.
+ *
+ * The manifest is a list of what the project carries; taking a name off that list leaves the file where it is, and saying so
+ * in the log is the difference between a person's edit and a person's accident. There is no confirmation sheet for that
+ * reason: nothing on disk changes, and the file can be added again with Add Files.
+ *
+ * The verb answers before it acts, like the others: no selection is a refusal with the reason in the log, and so is a
+ * selection that is a GROUP rather than a file — the browser holds both.
+ * =================================================================================================== */
+- (void)removeSelectedFile:(id)sender
+{
+	AGProjectFile *file = [self fn_selectedFile];
+	NSError *error = nil;
+
+	(void)sender;
+	if (file == nil) {
+		[self fn_log:@"error: select a file in the browser to remove it from the project\n"];
+		return;
+	}
+	if (![self fn_removeFile:file error:&error]) {
+		[self fn_log:[NSString stringWithFormat:@"error: %@\n",
+			(error != nil) ? [error localizedDescription] : @"the file could not be removed"]];
+	}
+}
+
+/* THE FILE UNDER THE SELECTION, or nil when the browser has a group (or nothing) selected. */
+- (NSOutlineView *)browserOutline
+{
+	return _outline;
+}
+
+- (AGProjectFile *)fn_selectedFile
+{
+	NSInteger row = [_outline selectedRow];
+	id item;
+
+	if (row < 0) {
+		return nil;
+	}
+	item = [_outline itemAtRow:row];
+	return [item isKindOfClass:[AGProjectFile class]] ? item : nil;
+}
+
+/* THE DOOR WITHOUT THE BROWSER, so a probe can remove a named file: the browser's only job is to say which one. */
+- (BOOL)fn_removeFile:(AGProjectFile *)file error:(NSError **)error
+{
+	NSString *relative;
+
+	if (file == nil) {
+		if (error != NULL) {
+			*error = AGForgeError(@"No file was named to remove.");
+		}
+		return NO;
+	}
+	relative = [[file relativePath] retain];
+	{
+		/* **THE PATH IS ASKED BEFORE THE FILE LEAVES THE MANIFEST**, because it is the manifest that knows the project's
+		 * directory — and it is compared with the editor's own path to see whether the open file is the one going. */
+		NSString *absolute = [[_project absolutePathForFile:file] retain];
+
+		if (![_project removeFile:file error:error]) {
+			[absolute release];
+			[relative release];
+			return NO;
+		}
+		if (![_project writeToURL:[_project projectDirectoryURL] error:error]) {
+			[absolute release];
+			[relative release];
+			return NO;
+		}
+		/* **AND A FILE THAT WAS OPEN GOES WITH IT.** The editor was showing a file the project no longer carries; leaving
+		 * its text on screen under a title naming it would be a window claiming something the manifest denies. */
+		if ([[_editor filePath] isEqualToString:absolute]) {
+			[_editor setSource:@""];
+			[_editor setFilePath:nil];
+			[[self window] setTitle:[self fn_windowTitle]];
+		}
+		[absolute release];
+	}
+	/* **AN EMPTY GROUP DISAPPEARS WITH ITS LAST FILE**, which is `-fn_reloadGroups`' existing rule: the groups are built
+	 * from the project's categories, so one that holds nothing is not in the browser at all. */
+	[self fn_reloadGroups];
+	[self fn_log:[NSString stringWithFormat:@"# Removed: %@ (the file is still on disk)\n", relative]];
+	[self fn_mirrorToLogFile:[NSString stringWithFormat:@"# Removed: %@\n", relative]];
+	[relative release];
+	[self refreshToolbarState];
 	return YES;
 }
 

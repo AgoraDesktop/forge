@@ -2,8 +2,8 @@
 
 **Source:** <https://github.com/tabler/tabler-icons>, `icons/outline/`, taken 2026-10-29.
 **Licence:** MIT — see `LICENSE` beside this file (copied verbatim from the repository root).
-**Files vendored:** `hammer.svg`, `player-play.svg`, `trash.svg`, `square.svg`, `plus.svg`, `package-export.svg` — the
-toolbar verbs (`package-export.svg` is Export App: a box with an arrow leaving it).
+**Files vendored:** `hammer.svg`, `player-play.svg`, `trash.svg`, `square.svg`, `plus.svg`, `package-export.svg`, `file-minus.svg` — the toolbar verbs (`package-export.svg` is Export App: a box with an arrow
+leaving it; `file-minus.svg` is Remove File: a page with a minus).
 
 **Why vendored rather than fetched.** A build must not need the network, and an icon must not be a path that resolves at
 run time; these five files are third-party ART, and the project README allows art to be vendored with its provenance

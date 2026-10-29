@@ -622,10 +622,30 @@ static NSString *AGTargetNameFromProjectName(NSString *name)
 
 - (BOOL)removeFile:(AGProjectFile *)file error:(NSError **)error
 {
-	(void)error;
-	[_files removeObjectIdenticalTo:file];
-	_dirty = YES;
-	return YES;
+	NSString *relative = [file relativePath];
+	NSUInteger i;
+
+	if (relative == nil) {
+		if (error != NULL) {
+			*error = AGProjectError(@"No file was named to remove.");
+		}
+		return NO;
+	}
+	/* **A MEMBER IS FOUND BY PATH, NOT BY IDENTITY.** The browser hands over the object it holds, but an equivalent
+	 * `AGProjectFile` — what a caller who read the manifest would have — names the same member, and a door that refused it
+	 * would be refusing the file rather than the spelling. */
+	for (i = 0; i < [_files count]; i++) {
+		if ([[[_files objectAtIndex:i] relativePath] isEqualToString:relative]) {
+			[_files removeObjectAtIndex:i];
+			_dirty = YES;
+			return YES;
+		}
+	}
+	if (error != NULL) {
+		*error = AGProjectError([NSString stringWithFormat:
+			@"%@ is not part of this project.", relative]);
+	}
+	return NO;
 }
 
 /* ---------------------------------------------------------------------------------------------------

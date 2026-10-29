@@ -25,6 +25,7 @@ typedef enum {
 	AGToolbarIconStop,
 	AGToolbarIconAdd,
 	AGToolbarIconExport,
+	AGToolbarIconRemoveFile,
 	AGToolbarIconCount
 } AGToolbarIconKind;
 

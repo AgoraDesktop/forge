@@ -120,7 +120,7 @@ int main(void)
 			NSArray *wanted = [NSArray arrayWithObjects:
 				@"AGToolbarBuild", @"AGToolbarRun", @"AGToolbarExport", NSToolbarSeparatorItemIdentifier,
 				@"AGToolbarClean", @"AGToolbarStop", NSToolbarSeparatorItemIdentifier,
-				@"AGToolbarAddFiles", NSToolbarFlexibleSpaceItemIdentifier,
+				@"AGToolbarAddFiles", @"AGToolbarRemoveFile", NSToolbarFlexibleSpaceItemIdentifier,
 				@"AGToolbarDetail", nil];
 			NSUInteger i;
 			BOOL matches = ([items count] == [wanted count]);
@@ -136,7 +136,7 @@ int main(void)
 				}
 				printf("       toolbar order: %s\n", [[got componentsJoinedByString:@", "] UTF8String]);
 			}
-			check(matches, "the toolbar is Build, Run, Export | Clean, Stop | Add, space, the mode switch");
+			check(matches, "the toolbar is Build, Run, Export | Clean, Stop | Add, Remove, space, the mode switch");
 		}
 
 		/* 1. NOTHING BUILT: Build is the only verb that can do anything. */
