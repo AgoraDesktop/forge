@@ -24,6 +24,7 @@
 #import <Foundation/NSDictionary.h>
 #import <Foundation/NSError.h>
 #import <Foundation/NSFileManager.h>
+#import <Foundation/NSNumber.h>
 #import <Foundation/NSPropertyList.h>
 #import <Foundation/NSPropertyListSerialization.h>
 #import <Foundation/NSString.h>
@@ -358,9 +359,30 @@ static NSString *AGTargetNameFromProjectName(NSString *name)
 	_type = type;
 	{
 		NSString *buildDirectory = [plist objectForKey:AGKeyBuildDirectory];
+		NSArray *components;
+		NSUInteger c;
 
+		/* **THE BUILD DIRECTORY IS ONE NAME UNDER THE PROJECT, OR IT IS REFUSED.** `Clean` removes whatever this key
+		 * names, so a manifest saying `../..` is a manifest that deletes somebody else's tree — and one saying `/tmp/x`
+		 * is the same thing spelled shorter. */
+		if (buildDirectory == nil) {
+			buildDirectory = @"build";
+		}
+		components = [buildDirectory componentsSeparatedByString:@"/"];
+		for (c = 0; c < [components count]; c++) {
+			NSString *component = [components objectAtIndex:c];
+
+			if ([component isEqualToString:@".."] || [component isEqualToString:@""]) {
+				if (error != NULL) {
+					*error = AGProjectError([NSString stringWithFormat:
+						@"AGProjectBuildDirectory must name a directory inside the project, and '%@' does not.",
+						buildDirectory]);
+				}
+				return NO;
+			}
+		}
 		[_buildDirectory release];
-		_buildDirectory = [(buildDirectory != nil ? buildDirectory : @"build") copy];
+		_buildDirectory = [buildDirectory copy];
 	}
 	paths = [plist objectForKey:AGKeyFilePaths];
 	if (paths != nil && ![paths isKindOfClass:[NSArray class]]) {
@@ -472,29 +494,6 @@ static NSString *AGTargetNameFromProjectName(NSString *name)
 	[path release];
 	[_URL release];
 	_URL = held;
-	/* THE METADATA, all optional: a key that is present must be a string, and one that is not is refused rather than
-	 * coerced — a plist that says nothing and a plist that says the wrong thing are different files. */
-	{
-		NSArray *stringKeys = [NSArray arrayWithObjects:AGKeyDisplayName, AGKeyIdentifier, AGKeyVersion,
-					AGKeyIconPath, nil];
-		NSUInteger k;
-
-		for (k = 0; k < [stringKeys count]; k++) {
-			id value = [plist objectForKey:[stringKeys objectAtIndex:k]];
-
-			if (value != nil && ![value isKindOfClass:[NSString class]]) {
-				if (error != NULL) {
-					*error = AGProjectError([NSString stringWithFormat:
-						@"%@ is not a string.", [stringKeys objectAtIndex:k]]);
-				}
-				return NO;
-			}
-		}
-	}
-	_displayName = [[plist objectForKey:AGKeyDisplayName] copy];
-	_bundleIdentifier = [[plist objectForKey:AGKeyIdentifier] copy];
-	_bundleVersion = [[plist objectForKey:AGKeyVersion] copy];
-	_iconPath = [[plist objectForKey:AGKeyIconPath] copy];
 	_dirty = NO;
 	return YES;
 }
@@ -858,10 +857,21 @@ BOOL AGBundleIdentifierIsValid(NSString *identifier)
 		[text appendString:@"add_executable("];
 		[text appendFormat:@"%@\n", target];
 	}
+	/* **QUOTED, BECAUSE A PATH IS ONE ARGUMENT.** `../Sources/my main.m` unquoted is two files to CMake, and the build
+	 * fails with "Cannot find source file: ../Sources/my" — MEASURED. The same quotes also keep a `;` in a name from
+	 * becoming a list separator. */
 	for (i = 0; i < [sources count]; i++) {
-		[text appendFormat:@"    ../%@\n", [[sources objectAtIndex:i] relativePath]];
+		[text appendFormat:@"    \"../%@\"\n", [[sources objectAtIndex:i] relativePath]];
 	}
 	[text appendString:@")\n\n"];
+	/* **THE BUNDLE'S OWN VOCABULARY, HANDED ON.** `-productURL` and the post-build below name
+	 * `Contents/<platform>/<arch>`, and a source that asks for the product's path spells those same two macros
+	 * (`AG_BUNDLE_PLATFORM`, `AG_BUNDLE_ARCH`) — this file among them, which is why a project made by Forge out of Forge
+	 * could not compile until the generated build carried them. The values are the generator's own, so the build and the
+	 * window that started it cannot disagree about where the product is. */
+	[text appendFormat:@"target_compile_definitions(%@ PRIVATE\n", target];
+	[text appendFormat:@"    AG_BUNDLE_PLATFORM=\"%@\"\n", @AG_BUNDLE_PLATFORM];
+	[text appendFormat:@"    AG_BUNDLE_ARCH=\"%@\")\n\n", @AG_BUNDLE_ARCH];
 
 	if (_type != AGProjectTypeLibrary && _type != AGProjectTypeBundle) {
 		[text appendString:@"# THE SDK: the installed AppKit, through its CMake package.\n"];

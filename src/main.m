@@ -318,7 +318,7 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	NSMenu *appMenu;
 	NSString *name = [[NSProcessInfo processInfo] processName];
 
-	AGRow(file, @"New Project…", @selector(newProject:), self, @"n", NSCommandKeyMask);
+	AGRow(file, @"New Project…", @selector(newProject:), self, @"n", NSCommandKeyMask | NSShiftKeyMask);
 	AGRow(file, @"Open Project…", @selector(openProject:), self, @"o", NSCommandKeyMask);
 	[file addItem:[NSMenuItem separatorItem]];
 	AGRow(file, @"Save", @selector(saveDocument:), self, @"s", NSCommandKeyMask);

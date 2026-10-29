@@ -303,7 +303,8 @@ static NSError *AGForgeError(NSString *reason)
 
 
 @interface AGProjectWindowController () <NSToolbarDelegate, NSToolbarItemValidation,
-					  NSOutlineViewDataSource, NSOutlineViewDelegate, AGBuilderDelegate>
+					  NSOutlineViewDataSource, NSOutlineViewDelegate, AGBuilderDelegate,
+					  AGProjectInfoViewDelegate>
 /* THE PRIVATE DOORS, declared together so a method above another one's definition still compiles. */
 - (void)fn_buildInterface;
 - (void)fn_reloadGroups;
@@ -459,10 +460,10 @@ static NSError *AGForgeError(NSString *reason)
 
 - (NSString *)fn_windowTitle
 {
-		/* **AN ASCII SEPARATOR, BECAUSE A TITLE IS DRAWN BY THIS TIER'S OWN TEXT PATH.** An em dash in this string came
-	 * out on screen as the UTF-8 bytes of a zero-width space, which is the appkit's title decode rather than this
-	 * file's bytes (they are correct). The sentence reads the same with a hyphen, and the finding is recorded here
-	 * rather than left to look like a typo in a screenshot. */
+	/* **THE SEPARATOR IS AN EM DASH, AND IT DRAWS.** It used to be read as a raster defect — a title built as
+	 * `@"%@ — %@"` arrived as `Hello â( …` — but the fault was `libagora-base`'s format scanner emitting one byte per
+	 * literal chunk, which split the three-byte character before any glyph was looked up. That is fixed
+	 * (`tests/constant_string_units.m`), so this is the typography the title should always have had. */
 	return [NSString stringWithFormat:@"%@ — %@", [_project name], [_project typeName]];
 }
 
@@ -633,11 +634,6 @@ static NSError *AGForgeError(NSString *reason)
 	}
 	if ([identifier isEqualToString:AGToolbarStop]) {
 		return running;
-	}
-	if ([identifier isEqualToString:AGToolbarExport]) {
-		/* **A PRODUCT THAT EXISTS AND NO BUILD IN FLIGHT**, which are the two questions `-exportApp:` asks: a greyed
-		 * button and a logged refusal can never disagree about whether there is something to export. */
-		return !building && [_builder hasProduct];
 	}
 	if ([identifier isEqualToString:AGToolbarExport]) {
 		/* **A PRODUCT THAT EXISTS AND NO BUILD IN FLIGHT**, which are the two questions `-exportApp:` asks: a greyed
@@ -956,16 +952,16 @@ static NSError *AGForgeError(NSString *reason)
 		}
 		[_builder note:[NSString stringWithFormat:@"# %ld error(s), %ld warning(s)\n",
 			(long)errors, (long)warnings]];
-		/* **WHERE THE THING IT MADE IS, SAID OUT LOUD.** A bundle is the product of an application project, and a
-		 * build that does not tell a person where it put one leaves them to guess at `build/<name>.app`. */
-		if ([_project type] == AGProjectTypeApplication || [_project type] == AGProjectTypeBundle) {
-			NSString *bundlePath = [[_project bundleURL] path];
-
-			if ([[NSFileManager defaultManager] fileExistsAtPath:bundlePath]) {
-				[_builder note:[NSString stringWithFormat:@"# Bundle: %@\n", bundlePath]];
-			}
+		/* **WHERE THE THING IT MADE IS, SAID OUT LOUD, BUT ONLY IF THIS BUILD MADE ONE.** A bundle is the product of an
+		 * application project, and a build that does not tell a person where it put one leaves them to guess at
+		 * `build/<name>.app`. THE BUILD'S OWN STATUS IS THE TEST, not the directory and not `-hasProduct`: the bundle's
+		 * `Info.plist` is written from the manifest BEFORE the toolchain runs (so a failed configure leaves
+		 * `<name>.app/Contents` with no executable in it), and `-hasProduct` answers YES for a binary the PREVIOUS build
+		 * left behind — MEASURED: a configure error over a stale product still logged `# Bundle:`. */
+		if (status == 0 && ([_project type] == AGProjectTypeApplication ||
+				    [_project type] == AGProjectTypeBundle)) {
+			[_builder note:[NSString stringWithFormat:@"# Bundle: %@\n", [[_project bundleURL] path]]];
 		}
-		(void)status;
 		return;
 	}
 	[_builder note:[NSString stringWithFormat:@"# %@ exited %d\n", stage, status]];
@@ -1114,7 +1110,7 @@ static NSError *AGForgeError(NSString *reason)
 	 * content size at build time, and `AGDetailView -fn_placePanes` only places the visible one — so the metadata pane kept
 	 * its born 571x390 inside a 852x426 pane, sitting 36 points low and 281 points narrow (MEASURED with
 	 * `FORGE_LAYOUT_DIAG`). The swap is what makes a pane visible, so the swap is what places it. */
-	[_detail fn_placePanes];
+	[(AGDetailView *)_detail fn_placePanes];
 	if (segment == 0) {
 		[[self window] makeFirstResponder:[_editor textView]];
 	} else {
@@ -1166,9 +1162,10 @@ static NSError *AGForgeError(NSString *reason)
 	NSError *error = nil;
 
 	(void)sender;
-	/* **BESIDE THE PROJECT, NOT INSIDE IT.** The project directory is where the manifest and the sources live; an exported
-	 * application dropped in there becomes a file the browser lists and the next build walks past. */
-	[panel setDirectory:[[[_project projectDirectoryURL] path] stringByDeletingLastPathComponent]];
+	/* **THE PANEL STARTS IN THE PROJECT, BECAUSE THE PROJECT IS ALL IT MAY WRITE IN.** It used to start one directory
+	 * up — the export panel's rule, copied — and `-fn_createFileAtPath:` then refused the name the panel offered, so
+	 * the default press of New File did nothing but log a refusal. */
+	[panel setDirectory:[[_project projectDirectoryURL] path]];
 	[panel setNameFieldStringValue:@"Untitled.m"];
 	[panel setMessage:@"Name the file to create in this project."];
 	if ([panel runModal] != NSOKButton) {

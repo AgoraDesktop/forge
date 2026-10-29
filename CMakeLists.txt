@@ -53,6 +53,8 @@ if(AGORA_RSVG_CONVERT AND AGORA_IMAGEMAGICK AND Python3_Interpreter_FOUND)
               "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/trash.svg"
               "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/square.svg"
               "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/plus.svg"
+              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/package-export.svg"
+              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/file-minus.svg"
       COMMENT "Embedding the Tabler toolbar glyphs"
       VERBATIM)
   add_custom_target(agora_toolbar_glyphs DEPENDS "${AGORA_TOOLBAR_GLYPHS}")
@@ -112,6 +114,12 @@ target_compile_definitions(Forge PRIVATE
 
 set(_bundle "${CMAKE_BINARY_DIR}/Forge.app")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in" "${_bundle}/Contents/Info.plist" @ONLY)
+# **THE BUNDLE'S PICTURE, BESIDE THE PLIST THAT NAMES IT.** `CFBundleIconFile` names this file and
+# `libagora-iconservices` looks for it under `Contents/Resources`, so a build-tree bundle and an installed one carry the
+# same picture — which is what makes the Dock's tile Forge rather than the drawn placeholder. The source is a 512-point
+# PNG: the artwork is scaled to a tile, and the 1254-point original was six times the bytes for the same pixels.
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/assets/forge-icon.png"
+    "${_bundle}/Contents/Resources/forge-icon.png" COPYONLY)
 add_custom_command(TARGET Forge POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
         "${_bundle}/Contents/${_bundle_platform}/${_bundle_arch}"
@@ -161,11 +169,6 @@ if(BUILD_TESTING)
       AG_BUNDLE_ARCH="${_bundle_arch}")
   add_test(NAME forge-end-to-end COMMAND forge_end_to_end)
 
-  get_filename_component(_forge_sdk_prefix_unused "${CMAKE_PREFIX_PATH}" REALPATH
-      BASE_DIR "${CMAKE_SOURCE_DIR}")
-  # A RELATIVE `CMAKE_PREFIX_PATH` IS RELATIVE TO THE SOURCE DIRECTORY (that is how this project was configured),
-  # so it is resolved against the source directory here too — resolving it against the build directory produced a
-  # prefix that does not exist, and the test then failed on a `find_package` the rest of the tree passes.
   # **BUILD, CLEAN, BUILD — IN ONE PROCESS.** The verbs a shell runs as three processes are one project window's
   # session, and the state between them (the flight flag, the poll timer, the generated build on disk) is exactly
   # what "it works the first time and fails after cleaning" was about.
@@ -389,25 +392,11 @@ if(BUILD_TESTING)
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
       AG_BUNDLE_ARCH="${_bundle_arch}")
   add_test(NAME forge-log-alignment COMMAND forge_log_alignment)
-  set_tests_properties(forge-log-alignment PROPERTIES
-      ENVIRONMENT "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib")
-  set_tests_properties(forge-pane-sizes PROPERTIES
-      ENVIRONMENT "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib")
-  set_tests_properties(forge-toolbar-icons PROPERTIES
-      ENVIRONMENT "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib")
-  set_tests_properties(forge-toolbar-state PROPERTIES
-      ENVIRONMENT "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib")
-  set_tests_properties(forge-project-info PROPERTIES
-      ENVIRONMENT "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib")
-  set_tests_properties(forge-line-numbers PROPERTIES
-      ENVIRONMENT "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib")
-  set_tests_properties(forge-text-layout PROPERTIES
-      ENVIRONMENT "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib")
-  set_tests_properties(forge-verb-conflicts PROPERTIES
-      ENVIRONMENT "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib")
-  set_tests_properties(forge-build-sequence PROPERTIES
-      ENVIRONMENT "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib")
 
+  # A RELATIVE `CMAKE_PREFIX_PATH` IS RELATIVE TO THE SOURCE DIRECTORY (that is how this project was configured), so it
+  # is resolved against the source directory here too — resolving it against the build directory produced a prefix that
+  # does not exist, and the test then failed on a `find_package` the rest of the tree passes. It is defined BEFORE the
+  # tests that name it: the block below used to sit above this line, so every one of them expanded to an empty prefix.
   get_filename_component(_forge_sdk_prefix "${CMAKE_PREFIX_PATH}" REALPATH
       BASE_DIR "${CMAKE_SOURCE_DIR}")
 
@@ -426,9 +415,8 @@ if(BUILD_TESTING)
   endforeach()
   # **`CMAKE_PREFIX_PATH` IS DELIBERATELY NOT SET HERE.** The builder has to find the SDK the way the application
   # does — from `FORGE_SDK_PREFIX`/`AGORA_PREFIX`, or from its own binary's ancestors — and a test that hands it the
-  # answer cannot tell whether a person pressing Build will get one.
-  set_tests_properties(forge-end-to-end PROPERTIES
-      ENVIRONMENT "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib")
+  # answer cannot tell whether a person pressing Build will get one. The defaults root the line above supplies stays:
+  # `forge-end-to-end` opens a window, so it writes to the store like every other test here.
 endif()
 
 # ---------------------------------------------------------------------------
@@ -445,6 +433,7 @@ endif()
 install(TARGETS Forge
     RUNTIME DESTINATION "${_bundle_install}/Contents/${_bundle_platform}/${_bundle_arch}")
 install(FILES "${_bundle}/Contents/Info.plist" DESTINATION "${_bundle_install}/Contents")
+install(FILES "${_bundle}/Contents/Resources/forge-icon.png" DESTINATION "${_bundle_install}/Contents/Resources")
 
 # A MEASUREMENT, NOT A TEST: what one drag step costs. Built always, run by hand.
 add_executable(forge_drag_cost

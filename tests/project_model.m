@@ -119,10 +119,32 @@ int main(void)
 		cmake = [reloaded generatedCMakeLists];
 		check([cmake rangeOfString:@"add_executable(Forge_Test"].location != NSNotFound,
 		      "the target name is the project's name made safe for CMake");
-		check([cmake rangeOfString:@"    ../Sources/main.m\n"].location != NSNotFound,
-		      "the source is named relative to the build directory");
+		check([cmake rangeOfString:@"    \"../Sources/main.m\"\n"].location != NSNotFound,
+		      "the source is named relative to the build directory, quoted");
+		/* **A PATH WITH A SPACE IN IT IS ONE ARGUMENT.** Unquoted, `../Sources/my main.m` reached CMake as two files and
+		 * the generated build failed with "Cannot find source file: ../Sources/my" — MEASURED in the running window. */
+		{
+			NSString *spaced = [sources stringByAppendingPathComponent:@"my main.m"];
+
+			[@"int main(void) { return 0; }\n" writeToFile:spaced atomically:YES
+						encoding:NSUTF8StringEncoding error:NULL];
+			check([project addFileAtAbsolutePath:spaced error:NULL],
+			      "a source whose name has a space is accepted");
+			check([[project generatedCMakeLists]
+					 rangeOfString:@"    \"../Sources/my main.m\"\n"].location != NSNotFound,
+			      "and the generated build quotes it, so CMake reads one path");
+		}
 		check([cmake rangeOfString:@"find_package(AgoraApp CONFIG REQUIRED)"].location != NSNotFound,
 		      "the generated build resolves the SDK");
+		/* **THE BUNDLE'S TWO NAMES ARE HANDED ON.** A source that spells the product's path (`AGProject.m` does, which
+		 * is what makes Forge buildable by Forge) needs them, and the values have to be the generator's own or the build
+		 * and the window disagree about where the product is. */
+		check([cmake rangeOfString:[NSString stringWithFormat:@"AG_BUNDLE_PLATFORM=\"%s\"", AG_BUNDLE_PLATFORM]
+				   ].location != NSNotFound,
+		      "the generated build carries the bundle platform");
+		check([cmake rangeOfString:[NSString stringWithFormat:@"AG_BUNDLE_ARCH=\"%s\"", AG_BUNDLE_ARCH]
+				   ].location != NSNotFound,
+		      "and the bundle architecture");
 		check([cmake rangeOfString:@"target_link_libraries(Forge_Test PRIVATE AgoraApp::App)"].location != NSNotFound,
 		      "the target links the AppKit");
 
@@ -203,6 +225,34 @@ int main(void)
 			      "a manifest with an unknown key is refused");
 			check(error != nil && [[error localizedDescription] rangeOfString:@"AGProjctName"].location != NSNotFound,
 			      "the refusal names the key");
+		}
+
+		/* **A BUILD DIRECTORY THAT LEAVES THE PROJECT IS REFUSED.** `Clean` removes whatever `AGProjectBuildDirectory`
+		 * names, so `../..` in a manifest somebody was sent is a Clean that deletes a tree the project does not own. */
+		{
+			NSMutableDictionary *plist = [NSMutableDictionary dictionary];
+			NSURL *other = [NSURL fileURLWithPath:
+				[fn_make_temp_project_directory() stringByAppendingPathComponent:@"outside"]];
+			NSData *data;
+
+			[[NSFileManager defaultManager] createDirectoryAtPath:[other path]
+						  withIntermediateDirectories:YES
+								   attributes:nil
+									error:NULL];
+			[plist setObject:[NSNumber numberWithInt:1] forKey:@"AGProjectFormatVersion"];
+			[plist setObject:@"Escapes" forKey:@"AGProjectName"];
+			[plist setObject:@"../.." forKey:@"AGProjectBuildDirectory"];
+			data = [NSPropertyListSerialization dataWithPropertyList:plist
+									  format:NSPropertyListXMLFormat_v1_0
+									 options:0
+									   error:NULL];
+			[data writeToFile:[[other path] stringByAppendingPathComponent:AGProjectManifestName]
+				   atomically:YES];
+			error = nil;
+			check([AGProject projectWithContentsOfURL:other error:&error] == nil,
+			      "a build directory outside the project is refused");
+			check(error != nil && [[error localizedDescription] rangeOfString:@"AGProjectBuildDirectory"].location != NSNotFound,
+			      "and the refusal names the key");
 		}
 
 		[[NSFileManager defaultManager] removeItemAtPath:directory error:NULL];

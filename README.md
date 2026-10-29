@@ -75,6 +75,10 @@ Hello/
 an empty project that looks fine. The same rule `NSNibSource.h` states for the nib compiler ("a compiler that
 silently drops a typo is a compiler that silently drops a design").
 
+`AGProjectBuildDirectory` is the one key whose VALUE is checked as well: it must name a directory inside the project, so
+`../..` and `/tmp/x` are refused. `Clean` removes whatever that key names, and a project file somebody was sent is not a
+place to accept a path that deletes a tree the project does not own.
+
 ## Build and run
 
 ```sh
@@ -89,6 +93,25 @@ Doors, named as test doors: `--project DIR` opens a project at launch (so a prob
 presses Build once it is open, `--clean` presses Clean first, `--steps build,clean,build` runs a SEQUENCE of the
 verbs — each starting when the previous one stops, which is what a person's next click does by taking a second — and
 `--seconds N` bounds the run the way Workspace's and Terminal's do.
+
+**THIS TREE IS ITSELF ONE OF ITS OWN PROJECTS.** `Project.agproj` in the root names the seven files in `src/`, so Forge
+builds Forge:
+
+```sh
+./build/Forge.app/Contents/Linux/amd64/Forge --project . --build --seconds 60
+./forge-build/Forge.app/Contents/Linux/amd64/Forge       # the product
+```
+
+The manifest's build directory is `forge-build` rather than `build`, because the generated `CMakeLists.txt` would
+otherwise land in the CMake tree above and the two would fight over one `CMakeCache.txt`. That build is the project
+layer's, not the release path's: it has no tests, no install rule, and no Tabler glyph step, so a self-built Forge draws
+the fallback toolbar icons (`AGToolbarIcons.m`). Use the CMake build above for those.
+
+**`assets/forge-icon.png` IS THE APPLICATION'S OWN PICTURE.** `Info.plist.in` names it with `CFBundleIconFile` and the
+build copies it to `Contents/Resources`, which is where `libagora-iconservices` looks — a PNG, read directly — so the
+Dock's tile is this artwork and not the drawn placeholder a bundle with no icon gets. `Project.agproj` names the same
+file, so a Forge built by Forge carries it too. The artwork is kept at 512 points: the tile wants a picture, and the
+1254-point original was six times the bytes for the same pixels.
 
 `FORGE_LOG_PATH` writes the build log to a file as it arrives, line for line with the pane. A build that fails inside
 a window is a build whose error text is on a screen; the file is what a person can send and what a probe can read.

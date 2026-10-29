@@ -152,6 +152,13 @@ int main(void)
 			check([[reloaded displayName] isEqualToString:@"Info Test App"],
 			      "while the name the panel was holding was not written either");
 		}
+		/* **AND NOT IN THE OBJECT EITHER.** The manifest is not the only copy a refused Apply can damage: the name and
+		 * the version used to be set BEFORE the identifier was asked, so the project object kept them and the next save
+		 * (any Add or Remove) wrote them after all, while the log said the apply had been refused. */
+		check([[project displayName] isEqualToString:@"Info Test App"],
+		      "and the project the window holds still names itself");
+		check([[project bundleVersion] isEqualToString:@"3.0.0"],
+		      "and still carries the version it had");
 
 		/* 4. REVERT DROPS WHAT WAS TYPED AND SHOWS THE PROJECT AGAIN. */
 		[[info versionField] setStringValue:@"9.9.9"];

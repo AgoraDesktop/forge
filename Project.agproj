@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AGProjectFilePaths</key>
+	<array>
+		<string>src/main.m</string>
+		<string>src/AGProject.m</string>
+		<string>src/AGBuilder.m</string>
+		<string>src/AGSourceEditor.m</string>
+		<string>src/AGProjectInfoView.m</string>
+		<string>src/AGToolbarIcons.m</string>
+		<string>src/AGProjectWindowController.m</string>
+		<string>src/AGToolbarIcons.h</string>
+		<string>src/AGBuilder.h</string>
+		<string>src/AGProject.h</string>
+		<string>src/AGProjectInfoView.h</string>
+		<string>src/AGProjectWindowController.h</string>
+		<string>src/AGSourceEditor.h</string>
+		<string>assets/forge-icon.png</string>
+	</array>
+	<key>AGProjectBuildDirectory</key>
+	<string>forge-build</string>
+	<key>AGProjectIconPath</key>
+	<string>assets/forge-icon.png</string>
+	<key>AGProjectName</key>
+	<string>Forge</string>
+	<key>AGProjectType</key>
+	<string>application</string>
+	<key>AGProjectFormatVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>

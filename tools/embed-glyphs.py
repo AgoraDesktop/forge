@@ -15,15 +15,6 @@ import subprocess
 import sys
 
 
-def rasterise(rsvg, svg, size):
-    """The four RGBA channels of one tile, as a list of ints."""
-    ppm = subprocess.run(
-        [rsvg, "-w", str(size), "-h", str(size), "-f", "png", svg],
-        check=True, stdout=subprocess.PIPE).stdout
-    # rsvg gives PNG, and this script must not depend on an image library: ask ImageMagick for PPM instead.
-    return ppm
-
-
 def tile(rsvg, svg, size):
     """RGBA bytes, via rsvg's vector path and ImageMagick's decoder."""
     png = subprocess.run([rsvg, "-w", str(size), "-h", str(size), svg],

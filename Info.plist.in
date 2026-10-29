@@ -19,6 +19,11 @@
 	<string>Forge</string>
 	<key>CFBundleExecutable</key>
 	<string>Forge</string>
+	<!-- THE APPLICATION'S OWN PICTURE, BY FILE, THE WAY A BUNDLE WITHOUT AN ASSET CATALOGUE CARRIES ONE.
+	     `AGIconLoader.c` resolves `Contents/Resources/<this name>` and reads a PNG directly, so the Dock's tile is
+	     this picture rather than the drawn placeholder. -->
+	<key>CFBundleIconFile</key>
+	<string>forge-icon.png</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

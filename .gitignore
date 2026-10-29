@@ -1,5 +1,8 @@
 Build directory: every build artefact goes here
 /build/
+# The tree Forge's own project file (`Project.agproj`) builds into — kept apart from the CMake `build/` so the two
+# do not overwrite each other's CMakeCache.
+/forge-build/
 
 Compiled objects and libraries
 *.o

@@ -505,10 +505,11 @@ static const CGFloat AGFooterGap = 22.0;
 	NSError *error = nil;
 
 	(void)sender;
-	[_project setDisplayName:[_nameField stringValue]];
-	[_project setBundleVersion:[_versionField stringValue]];
+	/* **THE IDENTIFIER IS ASKED FIRST, BECAUSE A REFUSAL MUST LEAVE EVERYTHING ALONE.** Setting the name and the
+	 * version before the identifier was validated left the project object holding a name the manifest never received —
+	 * so the next save (any Add, Remove or Apply) wrote it after all, while the log said the apply had been refused. */
 	if (![_project setBundleIdentifier:[_identifierField stringValue]]) {
-		/* **A REFUSED IDENTIFIER LEAVES EVERYTHING ALONE, THE FIELD INCLUDED** — the manifest keeps the identifier it
+		/* A REFUSED IDENTIFIER LEAVES EVERYTHING ALONE, THE FIELD INCLUDED — the manifest keeps the identifier it
 		 * had, the field shows what the project will actually use, and the reason goes to the project's log. */
 		if ([_delegate respondsToSelector:@selector(projectInfoDidLog:)]) {
 			[_delegate projectInfoDidLog:
@@ -518,6 +519,8 @@ static const CGFloat AGFooterGap = 22.0;
 		[self fn_updateStatus];
 		return;
 	}
+	[_project setDisplayName:[_nameField stringValue]];
+	[_project setBundleVersion:[_versionField stringValue]];
 	if (![_project writeToURL:[_project projectDirectoryURL] error:&error]) {
 		if ([_delegate respondsToSelector:@selector(projectInfoDidLog:)]) {
 			[_delegate projectInfoDidLog:[NSString stringWithFormat:@"error: %@\n",
@@ -538,16 +541,10 @@ static const CGFloat AGFooterGap = 22.0;
 - (void)revert:(id)sender
 {
 	(void)sender;
-	/* THE PROJECT IS THE TRUTH; `-reloadFields` alone would not drop an edit the project has not taken yet, so the
-	 * manifest is re-read first and everything the window shows comes from it. */
-	{
-		AGProject *fresh = [AGProject projectWithContentsOfURL:[_project projectDirectoryURL] error:NULL];
-
-		if (fresh != nil) {
-			[_project release];
-			_project = [fresh retain];
-		}
-	}
+	/* **THE PROJECT IS THE TRUTH, AND IT IS THE ONE EVERYBODY ELSE HOLDS.** This used to re-read the manifest into a
+	 * NEW `AGProject` and keep that instead — but the window controller and the builder still pointed at the old one,
+	 * so a later New File wrote the manifest from the stale model and dropped what Apply had just saved. Nothing
+	 * needs re-reading: an unapplied edit lives in these FIELDS, and `-reloadFields` overwrites them from the project. */
 	[self reloadFields];
 }
 
