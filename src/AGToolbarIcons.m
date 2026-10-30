@@ -28,12 +28,17 @@
 
 #include <string.h>
 
-/* **THE PICTURES ARE TABLER'S, COMPILED IN.** `assets/tabler-icons` holds five MIT-licensed outlines with their
- * provenance, `tools/embed-glyphs.py` turns them into the header this file includes, and the header is a build artifact in
- * the build directory — so the art is data in the binary rather than a path to resolve at run time, and a machine without
- * `rsvg-convert` simply builds the drawn fallback below. AND EVERY GLYPH HAS ONE, including the two the detail switch
- * wears: a fallback that covered only the verbs would leave `Code | Info` as two words on exactly the machines the
- * fallback exists for. */
+/* **THE PICTURES ARE TABLER'S, COMPILED IN, AND THE HEADER IS A SOURCE FILE BESIDE THIS ONE.** `assets/tabler-icons`
+ * holds the MIT-licensed outlines with their provenance and `tools/embed-glyphs.py` rasterises them into
+ * `src/agora-toolbar-glyphs.h`, which is checked in: the art is data in the binary rather than a path to resolve at run
+ * time, and — because a quoted include searches the INCLUDING FILE'S directory — every build of this project finds it,
+ * including the one Forge performs on its own project with a generated `CMakeLists.txt` that knows no build rules of
+ * ours. It used to be generated into the build directory, which made the pictures a property of HOW the project was
+ * built: MEASURED, the Forge that Forge built had no header, `__has_include` failed, and its toolbar drew the fallback
+ * below while the checkout's build drew Tabler's. Regenerate with
+ * `python3 tools/embed-glyphs.py assets/tabler-icons src/agora-toolbar-glyphs.h /usr/bin/rsvg-convert`.
+ * AND EVERY GLYPH HAS A FALLBACK, including the two the detail switch wears: one that covered only the verbs would leave
+ * `Code | Info` as two words on exactly the machines a fallback exists for. */
 #if defined(__has_include)
 #  if __has_include("agora-toolbar-glyphs.h")
 #    include "agora-toolbar-glyphs.h"

@@ -21,9 +21,18 @@ they belong: `Contents/Info.plist`, the icon into `Contents/Resources`, and the 
 bundles use). `Run` then launches the product, and the log says where the bundle is.
 
 **The toolbar's icons are Tabler's** — the MIT-licensed outlines vendored in `assets/tabler-icons` with their licence and
-`PROVENANCE.md`, rasterised at 24 and 48 points by `tools/embed-glyphs.py` into a C header **in the build directory**, so
-the pictures are compiled in and nothing resolves a resource path at run time. A machine without `rsvg-convert` builds the
-drawn fallback in `src/AGToolbarIcons.m` instead.
+`PROVENANCE.md`, rasterised at 24 and 48 points by `tools/embed-glyphs.py` into `src/agora-toolbar-glyphs.h`, **which is
+checked in**, so the pictures are compiled in, nothing resolves a resource path at run time, and no build needs
+`rsvg-convert`, ImageMagick or Python to produce the art it links. The header sits beside the file that includes it on
+purpose: a quoted include searches the including file's directory first, so **every** build of this project finds it —
+including the one Forge performs on its own project, whose generated `CMakeLists.txt` knows no rules of ours. It used to be
+generated into the build directory, and that made the pictures a property of *how* the project was built: an exported Forge
+built by Forge drew the fallback shapes while the checkout's build drew Tabler's, because the generated build directory had
+no header at all. Regenerate with
+
+    python3 tools/embed-glyphs.py assets/tabler-icons src/agora-toolbar-glyphs.h /usr/bin/rsvg-convert
+
+and commit the result (`src/AGToolbarIcons.m` keeps its drawn fallback for a checkout that deletes the header).
 
 They are **template images**, so the toolbar inks them: a disabled item's glyph is drawn in exactly the grey of its label
 and an enabled one in the label's own ink, which is why *Stop* looks greyed above and *Build* does not. **The Code | Info

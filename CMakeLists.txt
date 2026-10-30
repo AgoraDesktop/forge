@@ -27,44 +27,20 @@ endif()
 find_package(AgoraApp CONFIG REQUIRED)
 
 # ---------------------------------------------------------------------------
-# The toolbar's pictures: Tabler outlines rasterised into a C header at build time.
+# The toolbar's pictures: Tabler outlines, rasterised into the source tree.
 # ---------------------------------------------------------------------------
-# **THE ART IS VENDORED AND THE PIXELS ARE COMPILED IN.** `assets/tabler-icons` holds the MIT-licensed outlines (see its
-# PROVENANCE.md); `tools/embed-glyphs.py` rasterises each at 24 and 48 points and writes a header of RGBA bytes into the
-# BUILD directory, so nothing is loaded from disk at run time and the vendored SVG is what the build starts from. A machine
-# without `rsvg-convert` or ImageMagick's `convert` still builds: the header is simply not generated, `__has_include` fails,
-# and `AGToolbarIcons.m` draws its own shapes instead.
-find_program(AGORA_RSVG_CONVERT rsvg-convert)
-find_program(AGORA_IMAGEMAGICK convert)
-find_package(Python3 COMPONENTS Interpreter QUIET)
-
-set(AGORA_TOOLBAR_GLYPH_DIR "${CMAKE_BINARY_DIR}/generated")
-if(AGORA_RSVG_CONVERT AND AGORA_IMAGEMAGICK AND Python3_Interpreter_FOUND)
-  set(AGORA_TOOLBAR_GLYPHS "${AGORA_TOOLBAR_GLYPH_DIR}/agora-toolbar-glyphs.h")
-  add_custom_command(
-      OUTPUT "${AGORA_TOOLBAR_GLYPHS}"
-      COMMAND ${CMAKE_COMMAND} -E make_directory "${AGORA_TOOLBAR_GLYPH_DIR}"
-      COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed-glyphs.py"
-              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons" "${AGORA_TOOLBAR_GLYPHS}"
-              "${AGORA_RSVG_CONVERT}"
-      DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed-glyphs.py"
-              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/hammer.svg"
-              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/player-play.svg"
-              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/trash.svg"
-              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/square.svg"
-              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/plus.svg"
-              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/package-export.svg"
-              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/file-minus.svg"
-              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/code-dots.svg"
-              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/info-circle.svg"
-      COMMENT "Embedding the Tabler toolbar glyphs"
-      VERBATIM)
-  add_custom_target(agora_toolbar_glyphs DEPENDS "${AGORA_TOOLBAR_GLYPHS}")
-  set_source_files_properties("${AGORA_TOOLBAR_GLYPHS}" PROPERTIES GENERATED TRUE)
-else()
-  message(STATUS "Forge: rsvg-convert/ImageMagick/python3 not all present — the toolbar draws its own icons")
-  set(AGORA_TOOLBAR_GLYPHS "")
-endif()
+# **THE ART IS VENDORED AND THE PIXELS ARE COMPILED IN, AND THE HEADER IS A SOURCE FILE.** `assets/tabler-icons` holds
+# the MIT-licensed outlines (see its PROVENANCE.md), and `tools/embed-glyphs.py` rasterises each at 24 and 48 points into
+# `src/agora-toolbar-glyphs.h`, which is CHECKED IN:
+#
+#     python3 tools/embed-glyphs.py assets/tabler-icons src/agora-toolbar-glyphs.h /usr/bin/rsvg-convert
+#
+# It used to be generated into the BUILD directory, which made the pictures a property of HOW the project was built rather
+# than of the project — and Forge builds its own project with a generated `CMakeLists.txt` that knows nothing about this
+# rule. MEASURED: the Forge that Forge built had no `generated/agora-toolbar-glyphs.h`, `__has_include` failed, and its
+# toolbar drew the fallback shapes while the checkout's build drew Tabler's. A header beside the file that includes it is
+# found by BOTH builds, because a quoted include searches the including file's own directory first — and a build no longer
+# needs `rsvg-convert`, ImageMagick or Python to produce the art it links.
 
 set(FORGE_SOURCES
     src/main.m
@@ -77,10 +53,7 @@ set(FORGE_SOURCES
 
 add_executable(Forge ${FORGE_SOURCES})
 
-target_include_directories(Forge PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${AGORA_TOOLBAR_GLYPH_DIR}")
-if(AGORA_TOOLBAR_GLYPHS)
-  add_dependencies(Forge agora_toolbar_glyphs)
-endif()
+target_include_directories(Forge PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(Forge PRIVATE AgoraApp::App)
 
 # ---------------------------------------------------------------------------
