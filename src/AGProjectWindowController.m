@@ -658,17 +658,19 @@ static NSError *AGForgeError(NSString *reason)
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar
 {
 	(void)toolbar;
-	/* **THE ORDER IS THE ONE A HAND EXPECTS: THE TWO VERBS THAT MAKE SOMETHING, THEN THE TWO THAT STOP IT, THEN THE TWO
-	 * THAT ONLY CHANGE THE PROJECT.** Build and Run are what a person presses and Export is what you do with what Run
-	 * built, so it sits beside them; Clean and Stop are the corrections; Add is a project edit, so it gets a separator
-	 * of its own. The flexible space pushes the Code/Info switch to the right
-	 * edge, where a mode switch belongs, and the separators are the toolbar's own standard identifiers. */
+	/* **FOUR GROUPS, EACH A PAIR OF VERBS AND ONE RULE: WHAT ACTS, AND WHAT UNDOES IT.** Build and Clean are the
+	 * BUILD — one makes it, one takes it away; Run and Stop are the PRODUCT; Add and Remove are the PROJECT'S FILE
+	 * LIST, which is what the browser beside them shows; and Export stands alone because it is the only row that acts
+	 * on the result rather than changing the project. The separators are the toolbar's own standard identifiers, and
+	 * the flexible space pushes the Code/Info switch to the right edge, where a mode switch belongs. */
 	return [NSArray arrayWithObjects:
-		AGToolbarBuild, AGToolbarRun, AGToolbarExport,
+		AGToolbarBuild, AGToolbarClean,
 		NSToolbarSeparatorItemIdentifier,
-		AGToolbarClean, AGToolbarStop,
+		AGToolbarRun, AGToolbarStop,
 		NSToolbarSeparatorItemIdentifier,
 		AGToolbarAddFiles, AGToolbarRemoveFile,
+		NSToolbarSeparatorItemIdentifier,
+		AGToolbarExport,
 		NSToolbarFlexibleSpaceItemIdentifier,
 		AGToolbarDetail, nil];
 }

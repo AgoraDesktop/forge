@@ -117,10 +117,14 @@ int main(void)
 		 * pushes the mode switch to the right edge. */
 		{
 			NSArray *items = [[[controller window] toolbar] items];
+			/* **FOUR GROUPS: WHAT ACTS, AND WHAT UNDOES IT.** Each pair is one subject — the build, the product, the
+			 * project's files — and Export stands alone because it is the only row that acts on the result rather than
+			 * changing the project. The fill space puts the mode switch at the right edge. */
 			NSArray *wanted = [NSArray arrayWithObjects:
-				@"AGToolbarBuild", @"AGToolbarRun", @"AGToolbarExport", NSToolbarSeparatorItemIdentifier,
-				@"AGToolbarClean", @"AGToolbarStop", NSToolbarSeparatorItemIdentifier,
-				@"AGToolbarAddFiles", @"AGToolbarRemoveFile", NSToolbarFlexibleSpaceItemIdentifier,
+				@"AGToolbarBuild", @"AGToolbarClean", NSToolbarSeparatorItemIdentifier,
+				@"AGToolbarRun", @"AGToolbarStop", NSToolbarSeparatorItemIdentifier,
+				@"AGToolbarAddFiles", @"AGToolbarRemoveFile", NSToolbarSeparatorItemIdentifier,
+				@"AGToolbarExport", NSToolbarFlexibleSpaceItemIdentifier,
 				@"AGToolbarDetail", nil];
 			NSUInteger i;
 			BOOL matches = ([items count] == [wanted count]);
@@ -136,7 +140,7 @@ int main(void)
 				}
 				printf("       toolbar order: %s\n", [[got componentsJoinedByString:@", "] UTF8String]);
 			}
-			check(matches, "the toolbar is Build, Run, Export | Clean, Stop | Add, Remove, space, the mode switch");
+			check(matches, "the toolbar is Build, Clean | Run, Stop | Add, Remove | Export, space, the mode switch");
 		}
 
 		/* 1. NOTHING BUILT: Build is the only verb that can do anything. */

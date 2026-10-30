@@ -27,9 +27,12 @@ drawn fallback in `src/AGToolbarIcons.m` instead.
 They are **template images**, so the toolbar inks them: a disabled item's glyph is drawn in exactly the grey of its label
 and an enabled one in the label's own ink, which is why *Stop* looks greyed above and *Build* does not.
 
-The order is **Build · Run | Clean · Stop | Add** … flexible space … **Code | Info**: the two verbs that make something,
-then the two that correct it, then the project edit, with the mode switch pushed to the right edge where a mode switch
-belongs. `tests/toolbar_state.m` asserts that sequence, separators included.
+The order is **Build · Clean | Run · Stop | Add · Remove | Export** … flexible space … **Code | Info**: four groups, each
+a pair of verbs and one rule — what acts, and what undoes it. Build and Clean are the BUILD, Run and Stop are the
+PRODUCT, Add and Remove are the project's FILE LIST (what the browser beside them shows), and Export stands alone
+because it is the only row that acts on the result rather than changing the project. The flexible space pushes the mode
+switch to the right edge, where a mode switch belongs. `tests/toolbar_state.m` asserts that sequence, separators
+included.
 
 Agora is an installable desktop environment for Linux and the BSDs; see the project README in the parent directory
 (`../README.md`).
