@@ -20,10 +20,13 @@ they belong: `Contents/Info.plist`, the icon into `Contents/Resources`, and the 
 `NSBundle -executablePath` reads) with a symlink from `Contents/<platform>/<arch>/` (what this tree's installed
 bundles use). `Run` then launches the product, and the log says where the bundle is.
 
-**The toolbar's icons are Tabler's** — the MIT-licensed outlines vendored in `assets/tabler-icons` with their licence and
-`PROVENANCE.md`, rasterised at 24 and 48 points by `tools/embed-glyphs.py` into `src/agora-toolbar-glyphs.h`, **which is
-checked in**, so the pictures are compiled in, nothing resolves a resource path at run time, and no build needs
-`rsvg-convert`, ImageMagick or Python to produce the art it links. The header sits beside the file that includes it on
+**The toolbar's icons are Tabler's, and they come from the SYSTEM first.** The nine symbols this band wants are part of
+`libagora-iconservices`'s vendored Tabler theme — every outline Tabler publishes, installed under `share/icons/Tabler`
+beside Frost — so `AGToolbarIcon()` asks `+[NSImage imageNamed:@"hammer"]` and the pictures are a system resource rather
+than a copy of the art in this binary. The **fallback** is the one this project still carries: the same nine outlines
+vendored in `assets/tabler-icons` (MIT, with their licence and `PROVENANCE.md`), rasterised at 24 and 48 points by
+`tools/embed-glyphs.py` into `src/agora-toolbar-glyphs.h`, **checked in**, so a machine whose prefix has no theme still
+draws the same pictures and no build needs `rsvg-convert`, ImageMagick or Python to produce the art it links. The header sits beside the file that includes it on
 purpose: a quoted include searches the including file's directory first, so **every** build of this project finds it —
 including the one Forge performs on its own project, whose generated `CMakeLists.txt` knows no rules of ours. It used to be
 generated into the build directory, and that made the pictures a property of *how* the project was built: an exported Forge

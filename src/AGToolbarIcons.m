@@ -122,8 +122,40 @@ static NSImage *fn_glyph_image(const unsigned char *small, const unsigned char *
 }
 #endif
 
+/* **THE SYSTEM'S THEME FIRST, AND THE NAMES ARE THE THEME'S OWN.** The vendored Tabler set is installed as a theme
+ * beside Frost — 5,203 symbols at 24, 48 and 96 pixels, `libagora-iconservices`'s lookup and AppKit's
+ * `+[NSImage imageNamed:]` — so the nine pictures this toolbar wants are a SYSTEM RESOURCE, and asking for `hammer` is
+ * the whole of using it. The compiled-in copy below is the fallback for a machine where the theme is not installed (a
+ * prefix that predates it, or an install somebody trimmed): the pictures are the same art, so the toolbar looks the same
+ * either way, and the application does not fail to draw because a theme is missing. */
+static NSString *fn_system_icon_name(AGToolbarIconKind kind)
+{
+	switch (kind) {
+	case AGToolbarIconBuild:	return @"hammer";
+	case AGToolbarIconRun:		return @"player-play";
+	case AGToolbarIconClean:	return @"trash";
+	case AGToolbarIconStop:		return @"square";
+	case AGToolbarIconAdd:		return @"plus";
+	case AGToolbarIconExport:	return @"package-export";
+	case AGToolbarIconRemoveFile:	return @"file-minus";
+	case AGToolbarIconCode:		return @"code-dots";
+	case AGToolbarIconInfo:		return @"info-circle";
+	case AGToolbarIconCount:	break;
+	}
+	return nil;
+}
+
 NSImage *AGToolbarIcon(AGToolbarIconKind kind)
 {
+	NSString *systemName = fn_system_icon_name(kind);
+
+	if (systemName != nil) {
+		NSImage *themed = [NSImage imageNamed:systemName];
+
+		if (themed != nil) {
+			return themed;
+		}
+	}
 #ifdef AG_HAVE_TABLER_GLYPHS
 	switch (kind) {
 	case AGToolbarIconBuild:	return fn_glyph_image(AGGlyph_hammer[0], AGGlyph_hammer[1]);
