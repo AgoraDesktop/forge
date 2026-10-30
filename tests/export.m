@@ -45,7 +45,7 @@ int main(void)
 
 		setvbuf(stdout, NULL, _IOLBF, 0);
 		(void)[[NSApplication sharedApplication] finishLaunching];
-		setenv("FNX_CONFIG_ROOT", [scratch UTF8String], 1);
+		setenv("AGORA_CONFIG_ROOT", [scratch UTF8String], 1);
 		[manager removeItemAtPath:scratch error:NULL];
 		[manager createDirectoryAtPath:[scratch stringByAppendingPathComponent:@"Users"]
 		    withIntermediateDirectories:YES attributes:nil error:NULL];

@@ -11,7 +11,7 @@
  * `NSUserDefaults` when the hand lets go. This probe drags both dividers with synthetic events and then builds a SECOND
  * window over the same defaults, because "remembered" means the next one is already right.
  *
- * The defaults store is pointed at a scratch root (`FNX_CONFIG_ROOT`, the tree's own variable for exactly this) so the
+ * The defaults store is pointed at a scratch root (`AGORA_CONFIG_ROOT`, the tree's own variable for exactly this) so the
  * probe touches nothing in the image.
  */
 #import "AGBuilder.h"
@@ -102,7 +102,7 @@ int main(void)
 		(void)[[NSApplication sharedApplication] finishLaunching];
 		/* THE STORE'S ROOT IS AN INSTALLATION'S CONFIGURATION TREE AND IS EMPTY BY DEFAULT — a writable scratch one
 		 * here, so the probe neither reads a person's saved sizes nor writes its own into them. */
-		setenv("FNX_CONFIG_ROOT", [scratch UTF8String], 1);
+		setenv("AGORA_CONFIG_ROOT", [scratch UTF8String], 1);
 		[manager removeItemAtPath:scratch error:NULL];
 		[manager createDirectoryAtPath:[scratch stringByAppendingPathComponent:@"Users"] withIntermediateDirectories:YES
 				    attributes:nil error:NULL];

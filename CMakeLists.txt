@@ -299,7 +299,7 @@ if(BUILD_TESTING)
   add_test(NAME forge-toolbar-icons COMMAND forge_toolbar_icons)
 
   # **THE DIVIDERS DRAG, AND THE NUMBERS ARE REMEMBERED.** Two synthetic drags on the real window, the defaults read back
-  # from a scratch store (`FNX_CONFIG_ROOT`), and then a SECOND window that must already be the right size.
+  # from a scratch store (`AGORA_CONFIG_ROOT`), and then a SECOND window that must already be the right size.
   add_executable(forge_pane_sizes
       tests/pane_sizes.m
       src/AGProject.m
@@ -404,7 +404,7 @@ if(BUILD_TESTING)
 
   # **THE DEFAULTS STORE NEEDS A ROOT THIS ACCOUNT CAN WRITE, AND THE PANES NOW SAVE AS THE WINDOW IS BUILT.** The split
   # views remember their divider positions (`AgoraSplitView <name>`), so a test that opens a window writes to the store —
-  # and the default scope, `<FNX_CONFIG_ROOT>/Users/<user>/Configuration`, is unwritable when the variable is unset. One
+  # and the default scope, `<AGORA_CONFIG_ROOT>/Users/<user>/Configuration`, is unwritable when the variable is unset. One
   # scratch root per build tree, for every test in this component.
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test-config/Users")
   set(_forge_tests
@@ -413,7 +413,7 @@ if(BUILD_TESTING)
       forge-pane-sizes forge-log-alignment forge-new-file forge-export forge-remove-file)
   foreach(_forge_test IN LISTS _forge_tests)
     set_tests_properties(${_forge_test} PROPERTIES ENVIRONMENT
-        "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib;FNX_CONFIG_ROOT=${CMAKE_CURRENT_BINARY_DIR}/test-config")
+        "LD_LIBRARY_PATH=${_forge_sdk_prefix}/lib;AGORA_CONFIG_ROOT=${CMAKE_CURRENT_BINARY_DIR}/test-config")
   endforeach()
   # **`CMAKE_PREFIX_PATH` IS DELIBERATELY NOT SET HERE.** The builder has to find the SDK the way the application
   # does — from `FORGE_SDK_PREFIX`/`AGORA_PREFIX`, or from its own binary's ancestors — and a test that hands it the
