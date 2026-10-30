@@ -774,7 +774,10 @@ static NSError *AGForgeError(NSString *reason)
 		return item;
 	}
 	if ([identifier isEqualToString:AGToolbarDetail]) {
-		NSToolbarItem *item = [self fn_toolbarItem:identifier label:@"View" action:NULL toolTip:@"Code or Info"];
+		/* **ITS LABEL IS THE CAPTION UNDER THE SWITCH: "Pane".** The two pictures do not say what they switch — the
+		 * editor's pane or the project's metadata — and "View" (the old label, never drawn because a custom view was
+		 * skipped by the painter) would read as a second View menu two inches above it. */
+		NSToolbarItem *item = [self fn_toolbarItem:identifier label:@"Pane" action:NULL toolTip:@"Code or Info"];
 
 		[item setView:_detailSwitch];
 		return item;
