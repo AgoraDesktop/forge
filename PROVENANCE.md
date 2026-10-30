@@ -44,7 +44,7 @@ target, not a second build language.
 
 ## Third-party art
 
-`assets/tabler-icons/` holds five icons from **Tabler** (<https://github.com/tabler/tabler-icons>, MIT — the licence is
+`assets/tabler-icons/` holds nine icons from **Tabler** (<https://github.com/tabler/tabler-icons>, MIT — the licence is
 beside them) with `PROVENANCE.md` recording what was taken and when. They are rasterised at build time by
 `tools/embed-glyphs.py` into a generated header, so no bitmap is committed and no resource is loaded at run time; the
 component's own drawn fallback is in `src/AGToolbarIcons.m` for a machine without `rsvg-convert`.

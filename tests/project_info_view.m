@@ -79,6 +79,21 @@ static void check(int ok, const char *what)
 
 @end
 
+/* **TWO PICTURES ARE THE SAME ONLY IF THEIR BYTES ARE.** The segments' images are made by a factory that answers a fresh
+ * image per call, so identity says nothing; the representations are the same size and layout, which is what makes a memcmp
+ * the whole answer. */
+static int fn_same_picture(NSImage *a, NSImage *b)
+{
+	NSBitmapImageRep *ra = (NSBitmapImageRep *)[[a representations] lastObject];
+	NSBitmapImageRep *rb = (NSBitmapImageRep *)[[b representations] lastObject];
+
+	if (ra == nil || rb == nil || [ra pixelsWide] != [rb pixelsWide] || [ra pixelsHigh] != [rb pixelsHigh]) {
+		return 0;
+	}
+	return memcmp([ra bitmapData], [rb bitmapData],
+		      (size_t)([ra bytesPerRow] * [ra pixelsHigh])) == 0;
+}
+
 int main(void)
 {
 	@autoreleasepool {
@@ -218,8 +233,19 @@ int main(void)
 
 			check(detailSwitch != nil, "the window has the detail switch");
 			check([detailSwitch segmentCount] == 2, "with two segments");
-			check([[detailSwitch labelForSegment:0] isEqualToString:@"Code"], "Code first");
-			check([[detailSwitch labelForSegment:1] isEqualToString:@"Info"], "and Info second");
+			/* **TWO PICTURES AND NO WORDS.** Tabler's `code-dots` and `info-circle` are what the segments say; a word
+			 * beside each would read as the label of a text control in a band of pictures. The two claims below are
+			 * therefore the whole of the switch's meaning: each has a picture, and the two pictures differ — a factory
+			 * that answered one shape twice would make a switch that says nothing. */
+			check([detailSwitch imageForSegment:0] != nil && [detailSwitch imageForSegment:1] != nil,
+			      "each segment wears a picture");
+			check(!fn_same_picture([detailSwitch imageForSegment:0], [detailSwitch imageForSegment:1]),
+			      "and the two are different pictures");
+			check([[detailSwitch labelForSegment:0] length] == 0 &&
+			      [[detailSwitch labelForSegment:1] length] == 0,
+			      "with no words beside them");
+			check([detailSwitch frame].size.width < 120.0,
+			      "and the control is the width of its pictures, not of two empty label columns");
 			check([detailSwitch selectedSegment] == 0, "with the editor showing to begin with");
 			check(![[projectWindow editor] isHidden], "the editor is visible");
 			check([[projectWindow infoView] isHidden], "and the metadata pane is not");

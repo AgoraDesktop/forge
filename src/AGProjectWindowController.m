@@ -543,10 +543,17 @@ static NSError *AGForgeError(NSString *reason)
 
 	/* **THE SWITCH THAT CHOOSES BETWEEN THEM IS A TOOLBAR ITEM WITH A VIEW.** A segmented control is the control a
 	 * mode switch is, and a toolbar item that CARRIES a view is how one lives in the band. */
-	_detailSwitch = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(0.0, 0.0, 140.0, 24.0)];
+	_detailSwitch = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(0.0, 0.0, 96.0, 24.0)];
 	[_detailSwitch setSegmentCount:2];
-	[_detailSwitch setLabel:@"Code" forSegment:0];
-	[_detailSwitch setLabel:@"Info" forSegment:1];
+	/* **TWO PICTURES AND NO WORDS.** Each segment wears the icon of what it shows — Tabler's `code-dots` for the editor
+	 * and `info-circle` for the metadata pane — and the band they live in is a row of pictures, so a word beside each
+	 * would read as the label of a text control rather than as a mode switch. The names survive where a name belongs:
+	 * the toolbar item's own label and tool tip say what the pair is, and the two segments are the two panes of the
+	 * window. They are the same 24-point tiles the verbs use, drawn into the segment's sixteen-point box, and the frame
+	 * is the control's OWN measurement rather than a guessed width: picture-only segments are what `-sizeToFit` fits. */
+	[_detailSwitch setImage:AGToolbarIcon(AGToolbarIconCode) forSegment:0];
+	[_detailSwitch setImage:AGToolbarIcon(AGToolbarIconInfo) forSegment:1];
+	[_detailSwitch sizeToFit];
 	[_detailSwitch setSelectedSegment:0];
 	[_detailSwitch setTarget:self];
 	[_detailSwitch setAction:@selector(detailSegmentChanged:)];

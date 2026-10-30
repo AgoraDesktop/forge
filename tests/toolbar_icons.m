@@ -1,5 +1,5 @@
 /*
- * toolbar_icons — five pictures, each with ink in it, and no two the same.
+ * toolbar_icons — every picture, each with ink in it, and no two the same.
  *
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
@@ -9,7 +9,8 @@
  * rectangle, draw an image whose every pixel is transparent, and the item would look like a label with a gap in front of
  * it. So the claims are: each kind answers an image, at the size the band lays out, with ink in it; and the five are
  * DIFFERENT pictures, because a factory that forgot a `break` would return one shape five times and every icon would be
- * right in size and wrong in meaning.
+ * right in size and wrong in meaning. The loop is over `AGToolbarIconCount`, so a kind added to the band is a kind this
+ * case asks about without being told.
  */
 #import "AGToolbarIcons.h"
 

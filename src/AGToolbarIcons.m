@@ -1,5 +1,5 @@
 /*
- * AGToolbarIcons.m — five tiles, drawn.
+ * AGToolbarIcons.m — the band's pictures, drawn.
  *
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
@@ -31,7 +31,9 @@
 /* **THE PICTURES ARE TABLER'S, COMPILED IN.** `assets/tabler-icons` holds five MIT-licensed outlines with their
  * provenance, `tools/embed-glyphs.py` turns them into the header this file includes, and the header is a build artifact in
  * the build directory — so the art is data in the binary rather than a path to resolve at run time, and a machine without
- * `rsvg-convert` simply builds the drawn fallback below. */
+ * `rsvg-convert` simply builds the drawn fallback below. AND EVERY GLYPH HAS ONE, including the two the detail switch
+ * wears: a fallback that covered only the verbs would leave `Code | Info` as two words on exactly the machines the
+ * fallback exists for. */
 #if defined(__has_include)
 #  if __has_include("agora-toolbar-glyphs.h")
 #    include "agora-toolbar-glyphs.h"
@@ -79,6 +81,14 @@ static void fn_bar(CGFloat x1, CGFloat y1, CGFloat x2, CGFloat y2, CGFloat thick
 	}
 }
 
+/* **AND A DOT, WHICH IS A SHAPE TWO OF THESE PICTURES ARE MADE OF**: Tabler's `code-dots` is three of them and its
+ * `info-circle` has one over the stem. `radius` is the ink's own half-width, so a dot the art drew with a two-unit stroke
+ * is radius 1.0 at a 24-unit tile. */
+static void fn_dot(CGFloat x, CGFloat y, CGFloat radius)
+{
+	fn_fill(x - radius, y - radius, radius * 2.0, radius * 2.0);
+}
+
 /* **A TEMPLATE, SO THE TOOLBAR INKS IT AND A DISABLED BUTTON'S PICTURE IS THE SAME GREY AS ITS LABEL.** The image carries
  * the SHAPE in its alpha and no colour at all; `NSToolbar` fills it with the control ink, or with the disabled ink when the
  * item cannot be used — which is what makes the pair dim together instead of a black glyph sitting beside a grey word. */
@@ -118,6 +128,8 @@ NSImage *AGToolbarIcon(AGToolbarIconKind kind)
 	case AGToolbarIconAdd:		return fn_glyph_image(AGGlyph_plus[0], AGGlyph_plus[1]);
 	case AGToolbarIconExport:	return fn_glyph_image(AGGlyph_package_export[0], AGGlyph_package_export[1]);
 	case AGToolbarIconRemoveFile:	return fn_glyph_image(AGGlyph_file_minus[0], AGGlyph_file_minus[1]);
+	case AGToolbarIconCode:		return fn_glyph_image(AGGlyph_code_dots[0], AGGlyph_code_dots[1]);
+	case AGToolbarIconInfo:		return fn_glyph_image(AGGlyph_info_circle[0], AGGlyph_info_circle[1]);
 	case AGToolbarIconCount:	break;
 	}
 #endif
@@ -228,6 +240,26 @@ NSImage *AGToolbarIcon(AGToolbarIconKind kind)
 		/* A PLUS: two bars crossing at the tile's middle. */
 		fn_bar(5.0, 12.0, 19.0, 12.0, 3.0);
 		fn_bar(12.0, 5.0, 12.0, 19.0, 3.0);
+		break;
+	case AGToolbarIconCode:
+		/* **THREE DOTS IN A ROW, WHICH IS WHAT TABLER'S `CODE-DOTS` IS** — an ellipsis, not a pair of angle brackets —
+		 * so the fallback draws the same shape the vendored art does, and a machine without `rsvg-convert` gets a
+		 * picture whose meaning is the same one. */
+		fn_dot(9.0, 12.0, 1.4);
+		fn_dot(12.0, 12.0, 1.4);
+		fn_dot(15.0, 12.0, 1.4);
+		break;
+	case AGToolbarIconInfo:
+		/* A CIRCLE WITH AN `i`: the ring, the dot above, the stem below — `info-circle`'s three paths. */
+		{
+			NSBezierPath *ring = [NSBezierPath bezierPathWithOvalInRect:NSMakeRect(4.0, 4.0, 16.0, 16.0)];
+
+			[[NSColor controlTextColor] setStroke];
+			[ring setLineWidth:1.6];
+			[ring stroke];
+			fn_dot(12.0, 9.5, 1.0);
+			fn_bar(12.0, 12.0, 12.0, 16.0, 1.6);
+		}
 		break;
 	case AGToolbarIconCount:
 		break;

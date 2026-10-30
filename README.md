@@ -10,7 +10,8 @@ file), the same editor with line numbers beside it, the same build log a person 
 it. The behaviour is what was studied; the code is this tree's (see `PROVENANCE.md`).
 
 **A BUILT APPLICATION IS A BUNDLE A LAUNCHER CAN OPEN, AND ITS METADATA IS A PANE OF THE PROJECT WINDOW.** The
-toolbar's **Code | Info** switch swaps the middle region between the source editor and the metadata pane: the name a
+toolbar's **Code | Info** switch (two pictures: `code-dots` and `info-circle`) swaps the middle region between the source
+editor and the metadata pane: the name a
 person sees, the reverse-DNS identifier a launcher keys on, the version, and the icon (`Choose Icon…` copies a picture
 into the project's `Resources/` and names it). Apply writes the manifest, Revert drops what was typed, and switching
 back keeps an open file — and a half-typed identifier — exactly as they were, because both panes stay in the window and
@@ -19,13 +20,17 @@ they belong: `Contents/Info.plist`, the icon into `Contents/Resources`, and the 
 `NSBundle -executablePath` reads) with a symlink from `Contents/<platform>/<arch>/` (what this tree's installed
 bundles use). `Run` then launches the product, and the log says where the bundle is.
 
-**The toolbar's icons are Tabler's** — five MIT-licensed outlines vendored in `assets/tabler-icons` with their licence and
+**The toolbar's icons are Tabler's** — the MIT-licensed outlines vendored in `assets/tabler-icons` with their licence and
 `PROVENANCE.md`, rasterised at 24 and 48 points by `tools/embed-glyphs.py` into a C header **in the build directory**, so
 the pictures are compiled in and nothing resolves a resource path at run time. A machine without `rsvg-convert` builds the
 drawn fallback in `src/AGToolbarIcons.m` instead.
 
 They are **template images**, so the toolbar inks them: a disabled item's glyph is drawn in exactly the grey of its label
-and an enabled one in the label's own ink, which is why *Stop* looks greyed above and *Build* does not.
+and an enabled one in the label's own ink, which is why *Stop* looks greyed above and *Build* does not. **The Code | Info
+switch wears two of them and NO WORDS** — `code-dots` on the editor's segment and `info-circle` on the metadata pane's,
+because a row of captions in a band of pictures reads as a text control and two pictures read as the mode switch it is.
+The names are on the toolbar item, which is where a name for the pair belongs, and the control is the width of its own
+measurement (`-sizeToFit`) rather than of two label columns.
 
 The order is **Build · Clean | Run · Stop | Add · Remove | Export** … flexible space … **Code | Info**: four groups, each
 a pair of verbs and one rule — what acts, and what undoes it. Build and Clean are the BUILD, Run and Stop are the

@@ -29,7 +29,7 @@ find_package(AgoraApp CONFIG REQUIRED)
 # ---------------------------------------------------------------------------
 # The toolbar's pictures: Tabler outlines rasterised into a C header at build time.
 # ---------------------------------------------------------------------------
-# **THE ART IS VENDORED AND THE PIXELS ARE COMPILED IN.** `assets/tabler-icons` holds five MIT-licensed outlines (see its
+# **THE ART IS VENDORED AND THE PIXELS ARE COMPILED IN.** `assets/tabler-icons` holds the MIT-licensed outlines (see its
 # PROVENANCE.md); `tools/embed-glyphs.py` rasterises each at 24 and 48 points and writes a header of RGBA bytes into the
 # BUILD directory, so nothing is loaded from disk at run time and the vendored SVG is what the build starts from. A machine
 # without `rsvg-convert` or ImageMagick's `convert` still builds: the header is simply not generated, `__has_include` fails,
@@ -55,6 +55,8 @@ if(AGORA_RSVG_CONVERT AND AGORA_IMAGEMAGICK AND Python3_Interpreter_FOUND)
               "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/plus.svg"
               "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/package-export.svg"
               "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/file-minus.svg"
+              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/code-dots.svg"
+              "${CMAKE_CURRENT_SOURCE_DIR}/assets/tabler-icons/info-circle.svg"
       COMMENT "Embedding the Tabler toolbar glyphs"
       VERBATIM)
   add_custom_target(agora_toolbar_glyphs DEPENDS "${AGORA_TOOLBAR_GLYPHS}")
