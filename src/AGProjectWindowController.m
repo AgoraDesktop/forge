@@ -722,10 +722,13 @@ static NSError *AGForgeError(NSString *reason)
 		 * choice — every row Forge builds names its target — and not a workaround: AppKit's responder walk ends at the
 		 * APPLICATION DELEGATE, so a nil-target item would find the same object. */
 		[item setTarget:[[NSApplication sharedApplication] delegate]];
-		/* **AND THE PICTURES ARE THE SYSTEM'S SYMBOLS**, asked for by name: a page with a plus, and an open folder. A
-		 * machine whose prefix carries no icon theme gets these two rows as LABELS, which is what the band does with any
-		 * item that has no picture — usable, rather than a blank cell. */
-		[item setImage:[NSImage imageNamed:(making ? @"file-plus" : @"folder-open")]];
+		/* **AND THE PICTURES ARE THE SYSTEM'S SYMBOLS, ASKED FOR AS `toolbar:` AND NOT AS A BARE NAME.** A bare
+		 * `folder-open` is a name BOTH installed themes carry — Frost's filled, coloured place folder and Tabler's outline
+		 * symbol — and the unprefixed lookup answers the theme in charge (Frost, in a session), which drew a solid black
+		 * folder in a template band. MEASURED. `toolbar:` means "the theme that holds the UI's symbols", so a machine
+		 * whose prefix carries no such theme gets these two rows as LABELS — what the band does with any item that has no
+		 * picture — rather than a second copy of somebody else's art. */
+		[item setImage:[NSImage imageNamed:(making ? @"toolbar:file-plus" : @"toolbar:folder-open")]];
 		return item;
 	}
 	if ([identifier isEqualToString:AGToolbarBuild]) {
