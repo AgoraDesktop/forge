@@ -16,6 +16,12 @@
  * installed twice — so the handler is installed once per stage and cleared when the stage ends. The task is
  * RETAINED in `_task` for exactly as long as its pipe is live.
  */
+
+/* `dladdr` IS A GNU EXTENSION ON GLIBC (declared in `<dlfcn.h>` only under this macro) and a plain function on the
+ * BSDs, where defining it changes nothing. It has to come before ANY header, which is why it is here rather than
+ * beside the include. */
+#define _GNU_SOURCE 1
+
 #import "AGBuilder.h"
 #import "AGProject.h"
 
@@ -31,6 +37,14 @@
 #import <Foundation/NSThread.h>
 #import <Foundation/NSTimer.h>
 #import <Foundation/NSURL.h>
+
+/* **THE APPKIT'S OWN HEADER FOR ONE SYMBOL: `NSApplicationMain` is the address this file asks the dynamic loader
+ * about.** A Forge that was INSTALLED has no ancestor holding a prefix — nothing about `~/Applications/Forge.app`
+ * says where the AppKit came from — but it is linked to that AppKit, and `dladdr` turns that link back into a path. */
+#import <AppKit/NSApplication.h>
+
+#include <dlfcn.h>
+#include <stdint.h>
 
 #import <stdio.h>
 #import <stdlib.h>
@@ -609,13 +623,38 @@ NSArray *AGDiagnosticsFromBuildOutput(NSString *output)
 	}
 }
 
+/* **THE PREFIX THE RUNNING APPKIT WAS LOADED FROM, WHICH IS THE ONE ANCHOR AN INSTALLED FORGE HAS.** The search below
+ * reads environment variables a person launching a BUNDLE does not have, and then walks this process's own ancestors —
+ * which for an application in `~/Applications` is a walk to `/` that finds nothing. But the application is LINKED to the
+ * AppKit, and the AppKit sits in `<prefix>/lib/libagora-app.so`, so the prefix is derivable from the link itself.
+ * MEASURED: an installed Forge's Build said "The Agora SDK prefix was not found; set FORGE_SDK_PREFIX …" — and with a
+ * CLEANED build directory the configure failed outright, because there was no cached `CMAKE_PREFIX_PATH` to fall back
+ * on. It is also the RIGHT prefix to build against rather than a copy carried in the bundle: the product links the same
+ * libraries this application is running with, which is what makes the product run afterwards. */
+static NSString *fn_prefixOfLoadedAppKit(void)
+{
+	Dl_info info;
+	void *symbol = (void *)(uintptr_t)&NSApplicationMain;
+	NSString *library;
+
+	if (dladdr(symbol, &info) == 0 || info.dli_fname == NULL) {
+		return nil;
+	}
+	library = [NSString stringWithUTF8String:info.dli_fname];
+	if ([library length] == 0) {
+		return nil;
+	}
+	/* `<prefix>/lib/libagora-app.so` -> `<prefix>` */
+	return [[library stringByDeletingLastPathComponent] stringByDeletingLastPathComponent];
+}
+
 /* **THE SDK PREFIX, BECAUSE A GENERATED BUILD CANNOT GUESS WHERE THE APPKIT WAS INSTALLED.** The generated
  * `CMakeLists.txt` says `find_package(AgoraApp CONFIG REQUIRED)`, and CMake needs a prefix to look in — the first
  * real session's Build failed with exactly "Add the installation prefix of AgoraApp to CMAKE_PREFIX_PATH", because
  * this application was launched without the developer's environment. The search is, in order: `FORGE_SDK_PREFIX`,
- * the tree's own `AGORA_PREFIX`, then each ancestor of this process's binary looking for `<ancestor>/lib/cmake/…`
- * (an installed Forge) or `<ancestor>/build-prefix/lib/cmake/…` (a Forge built in a checkout, whose binary sits in
- * `<tree>/forge/build/`). */
+ * the tree's own `AGORA_PREFIX`, THE PREFIX THE RUNNING APPKIT CAME FROM (an installed Forge), then each ancestor of
+ * this process's binary looking for `<ancestor>/lib/cmake/…` (a Forge installed NEXT TO a prefix) or
+ * `<ancestor>/build-prefix/lib/cmake/…` (a Forge built in a checkout, whose binary sits in `<tree>/forge/build/`). */
 - (NSString *)fn_sdkPrefix
 {
 	static NSString *found = nil;
@@ -638,6 +677,20 @@ NSArray *AGDiagnosticsFromBuildOutput(NSString *output)
 		if ([manager fileExistsAtPath:[candidate stringByAppendingPathComponent:
 			@"lib/cmake/AgoraApp/AgoraAppConfig.cmake"]]) {
 			found = [candidate copy];
+			return found;
+		}
+	}
+	{
+		/* **AND WHERE THE RUNNING APPKIT LIVES, BEFORE ANY WALK OF THIS BINARY'S OWN ANCESTORS.** An installed application's
+		 * ancestors hold no prefix at all, and this is the prefix that matches the libraries it is actually using. A
+		 * build-tree AppKit (`libagora-app/build/libagora-app.so`) makes this candidate `<...>/libagora-app`, which fails
+		 * the manifest test below and falls through to the checkout walk — so a developer's session keeps working either
+		 * way. */
+		NSString *loaded = fn_prefixOfLoadedAppKit();
+
+		if ([loaded length] > 0 && [manager fileExistsAtPath:[loaded stringByAppendingPathComponent:
+			@"lib/cmake/AgoraApp/AgoraAppConfig.cmake"]]) {
+			found = [loaded copy];
 			return found;
 		}
 	}

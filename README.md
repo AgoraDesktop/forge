@@ -124,9 +124,14 @@ file, so a Forge built by Forge carries it too. The artwork is kept at 512 point
 `FORGE_LOG_PATH` writes the build log to a file as it arrives, line for line with the pane. A build that fails inside
 a window is a build whose error text is on a screen; the file is what a person can send and what a probe can read.
 
-`FORGE_SDK_PREFIX` names the SDK the generated build resolves (a directory holding `lib/cmake/AgoraApp`); with it
-unset the builder looks at `AGORA_PREFIX`, then at each ancestor of its own binary for `<dir>/lib/cmake/…` or
-`<dir>/build-prefix/lib/cmake/…`. `FORGE_CC` / `FORGE_OBJC` choose the compilers the **generated** build is
+`FORGE_SDK_PREFIX` names the SDK the generated build resolves (a directory holding `lib/cmake/AgoraApp`). With it
+unset the builder looks at `AGORA_PREFIX`, then at **the prefix the running AppKit was loaded from** — `dladdr` on
+`NSApplicationMain`, which is `<prefix>/lib/libagora-app.so` — and finally at each ancestor of its own binary for
+`<dir>/lib/cmake/…` or `<dir>/build-prefix/lib/cmake/…`. That middle step is the one an INSTALLED Forge needs: an
+application in `~/Applications` has no ancestor holding a prefix, but it is linked to the AppKit and the AppKit lives
+in the SDK. It is also the right prefix to build against, because the product then links the same libraries the
+application is running with. An install-wide SDK (`/usr`, or any prefix someone staged) therefore needs no
+environment at all, which is the shape this is heading for. `FORGE_CC` / `FORGE_OBJC` choose the compilers the **generated** build is
 configured with; the defaults are
 `/usr/bin/clang-19`, because this tree is clang-only and there is no plain `clang` on every machine's `PATH`.
 `FORGE_BUILD_DIAG=1` prints one line per build stage and read to stderr — the diagnostic a build that does not
@@ -323,8 +328,11 @@ None of them needs a window, an input device or a compositor.
 6. **A generated build cannot find the SDK by itself.** `find_package(AgoraApp CONFIG REQUIRED)` needs a prefix, and
    an application launched from the desktop inherits no developer environment — the first in-session Build failed
    with "Add the installation prefix of AgoraApp to CMAKE_PREFIX_PATH". The builder now finds it: `FORGE_SDK_PREFIX`,
-   then `AGORA_PREFIX`, then each ancestor of its own binary for `<dir>/lib/cmake/…` or
-   `<dir>/build-prefix/lib/cmake/…`, and it says so in the log when it finds none.
+   then `AGORA_PREFIX`, then the prefix the running AppKit was loaded from (`dladdr` on `NSApplicationMain`), then each
+   ancestor of its own binary for `<dir>/lib/cmake/…` or `<dir>/build-prefix/lib/cmake/…`, and it says so in the log
+   when it finds none. MEASURED the other way round, which is why the middle step exists: an installed Forge (in
+   `~/Applications`) reported "The Agora SDK prefix was not found; set FORGE_SDK_PREFIX …", and with a CLEANED build
+   directory the configure failed outright — nothing out there was an ancestor of its binary.
 7. **A verb that cannot run must say so, because silence looks like failure.** Each of Build, Clean and Run used to
    clear the log, call the builder and ignore the answer: a Build pressed while a build was still running therefore
    wiped the log and printed nothing, and a Clean pressed during a build deleted the directory a running `cmake` was
