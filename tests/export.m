@@ -139,6 +139,32 @@ int main(void)
 			check(error != nil, "with the filesystem's own reason");
 		}
 
+		/* 5. **AND THE PANEL OPENS IN THE ACCOUNT'S APPLICATION FOLDER.** The choice is one door because that is the
+		 * part a probe can hold: `~/Applications` — made when it is not there, because a Forge started without a session
+		 * has never had one — and the home itself when it cannot be made. */
+		{
+			NSString *scratchHome = [root stringByAppendingPathComponent:@"Home"];
+			NSString *applications = [scratchHome stringByAppendingPathComponent:@"Applications"];
+			NSString *blockedHome = [root stringByAppendingPathComponent:@"Blocked"];
+
+			[manager createDirectoryAtPath:scratchHome withIntermediateDirectories:YES attributes:nil error:NULL];
+			check(![manager fileExistsAtPath:applications], "the scratch home has no Applications folder to begin with");
+			check([[AGProjectWindowController fn_exportDirectoryForHome:scratchHome] isEqualToString:applications],
+			      "an export defaults to ~/Applications");
+			check([manager fileExistsAtPath:applications], "and the folder is made when the account has never had one");
+
+			[manager createDirectoryAtPath:blockedHome withIntermediateDirectories:YES attributes:nil error:NULL];
+			[[@"not a directory\n" dataUsingEncoding:NSUTF8StringEncoding]
+				writeToFile:[blockedHome stringByAppendingPathComponent:@"Applications"] atomically:YES];
+			check([[AGProjectWindowController fn_exportDirectoryForHome:blockedHome] isEqualToString:blockedHome],
+			      "a home whose Applications is a FILE answers the home rather than a path that is not a folder");
+			check([AGProjectWindowController fn_exportDirectoryForHome:nil] == nil,
+			      "and no home at all answers nil rather than inventing one");
+
+			[manager removeItemAtPath:blockedHome error:NULL];
+			[manager removeItemAtPath:scratchHome error:NULL];
+		}
+
 		[controller release];
 		[manager removeItemAtPath:root error:NULL];
 		[manager removeItemAtPath:scratch error:NULL];

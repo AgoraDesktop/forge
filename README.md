@@ -155,6 +155,15 @@ the log, both refusals, and the toolbar item's own press: select the row, valida
 the product of a build lives in `build/`, inside the tree `Clean` deletes, which is a fine place to run from and a bad
 place to hand to somebody.
 
+**AND THE PANEL OPENS IN `~/Applications`, WHICH IS WHERE A BUILT BUNDLE BELONGS.** It used to open beside the project,
+which is where a person's sources are and where an exported `.app` becomes a file the browser lists and the next build
+walks past. The account's own application folder is the Mac's answer for a bundle that did not come from a store: the
+session creates it at login as part of the home set, and Launch Services scans it. Forge makes it if it is not there
+(a Forge started on its own has never had a login) and answers the home itself when it cannot be made — a file of that
+name, an unwritable home — because a panel pointed at something that does not exist is worse than one pointed at the
+directory that does. The choice is one door, `+fn_exportDirectoryForHome:`, which is what lets `forge-export` hold it
+without a panel.
+
 It answers before it acts, like the other verbs: no product is a refusal with the reason in the log, and a build in
 flight is a refusal too, because the bundle on disk at that moment is half of one. The button greys itself through
 `-validateToolbarItem:` on the same two questions, so a greyed button and a logged refusal cannot disagree. The
@@ -164,9 +173,10 @@ is not the application that was just built, and a stale file inside a bundle is 
 The icon is Tabler's `package-export` (a box with an arrow leaving it), vendored with the others; `AGToolbarIcons.m`
 draws the same shape when a machine has no `rsvg-convert` and the generated header is absent.
 
-`forge-export` (16 checks) drives `-fn_exportProductToPath:error:` — the same verb without the panel — through both
+`forge-export` (26 checks) drives `-fn_exportProductToPath:error:` — the same verb without the panel — through both
 refusals, a real copy (executable and `Info.plist` inside), an export over an existing bundle (the stale file is gone),
-and a destination that cannot be written.
+a destination that cannot be written, and the panel's own start: `~/Applications`, made when it is missing, with the
+home as the answer when it cannot be.
 
 ## Files: adding one, and making one
 
@@ -280,7 +290,7 @@ stops.
 | `tests/log_alignment.m` (6 checks) | **the log's first character sits at its pane's left edge**: the window is rendered at 1:1 in points, the log pane's edge read from the view, and the ink measured — the text system's own four points are the only inset there is |
 | `tests/pane_sizes.m` (16 checks) |
 | `tests/new_file.m` (13 checks) |
-| `tests/export.m` (16 checks) |
+| `tests/export.m` (26 checks) |
 | `tests/remove_file.m` (17 checks) | **the dividers drag and the sizes are remembered**: two synthetic drags on the real window move the browser and the log by the distance dragged, the numbers land in `NSUserDefaults` (a scratch `FNX_CONFIG_ROOT`), a drag that would swallow the editor is clamped, the separation is an **eight-point gutter with the two resize cursors over it**, five motions inside one frame are applied as **one** move, and a **second window opens already the right size** |
 | `tests/toolbar_icons.m` (15 checks) | **the toolbar's pictures**: each kind answers a 24-point image with ink in it, and **no two kinds are the same picture** — a factory that forgot a `break` would be right in size and wrong in meaning |
 | `tests/toolbar_state.m` (17 checks) | **a verb's button says whether it can do anything**: on an unbuilt project Run, Clean and Stop are grey and Build is not; after a build Run and Clean are usable; while the product runs Stop is the only verb left (and Clean is off, because it would delete the product under it); after Stop, Run returns and Stop greys; after Clean, Clean and Run are both off |

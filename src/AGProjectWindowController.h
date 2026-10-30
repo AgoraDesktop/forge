@@ -92,6 +92,14 @@
 - (void)exportApp:(id)sender;
 - (BOOL)fn_exportProductToPath:(NSString *)path error:(NSError **)error;
 
+/* **WHERE THE EXPORT PANEL OPENS: THE ACCOUNT'S OWN APPLICATION FOLDER.** `~/Applications` is where a bundle a person
+ * built belongs — the session creates it at login as part of the Mac's home set, and Launch Services scans it, so what
+ * leaves the project is an application rather than a folder beside somebody's source. It is made if it is not there
+ * yet (a Forge started on its own has never had a login), and an account whose home cannot hold it gets the home
+ * itself rather than a panel pointed at a directory that does not exist. THE HOME IS AN ARGUMENT because
+ * `NSHomeDirectory()` is the real account's: a probe asks about a scratch one. */
++ (NSString *)fn_exportDirectoryForHome:(NSString *)home;
+
 /* TAKES THE BROWSER'S SELECTION OUT OF THE MANIFEST, not off the disk. No selection is a refusal with the reason in the log;
  * `-fn_removeFile:error:` is the same verb for a named file, so a probe needs no browser. */
 - (void)removeSelectedFile:(id)sender;

@@ -1265,9 +1265,11 @@ static NSError *AGForgeError(NSString *reason)
 	}
 	[panel setTitle:@"Export App"];
 	[panel setMessage:@"Choose where to save the application bundle."];
-	/* **BESIDE THE PROJECT, NOT INSIDE IT.** The project directory is where the manifest and the sources live; an exported
-	 * application dropped in there becomes a file the browser lists and the next build walks past. */
-	[panel setDirectory:[[[_project projectDirectoryURL] path] stringByDeletingLastPathComponent]];
+	/* **THE ACCOUNT'S APPLICATION FOLDER, WHICH IS WHERE A BUILT BUNDLE BELONGS AND IS ALSO NOT THE PROJECT.** It used to
+	 * open beside the project, which is where a person's sources are and where an exported `.app` becomes a file the
+	 * browser lists and the next build walks past. `~/Applications` is the Mac's answer for a bundle that did not come
+	 * from a store: the session makes it at login and Launch Services scans it. */
+	[panel setDirectory:[AGProjectWindowController fn_exportDirectoryForHome:NSHomeDirectory()]];
 	[panel setNameFieldStringValue:[product lastPathComponent]];
 	[panel setRequiredFileType:@"app"];
 	if ([panel runModal] != NSOKButton) {
@@ -1277,6 +1279,32 @@ static NSError *AGForgeError(NSString *reason)
 		[self fn_log:[NSString stringWithFormat:@"error: %@\n",
 			(error != nil) ? [error localizedDescription] : @"the application could not be exported"]];
 	}
+}
+
+/* **WHERE THE PANEL OPENS, AND IT IS THE ONLY THING THE PANEL'S PLACE DEPENDS ON.** `~/Applications` for the reason the
+ * header gives; made here rather than assumed, because a Forge started without a session has never had one; and the home
+ * itself when it cannot be made — a file called `Applications`, a home that is not writable — since a panel pointed at
+ * something that does not exist is worse than one pointed at the directory that does. */
++ (NSString *)fn_exportDirectoryForHome:(NSString *)home
+{
+	NSFileManager *manager = [NSFileManager defaultManager];
+	NSString *applications;
+	BOOL isDirectory = NO;
+
+	if ([home length] == 0) {
+		return nil;
+	}
+	applications = [home stringByAppendingPathComponent:@"Applications"];
+	/* **A FILE OF THAT NAME IS NOT THE FOLDER**, which is a second question and not the same one: `-fileExistsAtPath:`
+	 * answers YES for both, so the test is `isDirectory:` — a home whose `Applications` is a plain file gets the home
+	 * back rather than a panel pointed at something that cannot hold a bundle. */
+	if (![manager fileExistsAtPath:applications isDirectory:&isDirectory]) {
+		[manager createDirectoryAtPath:applications withIntermediateDirectories:NO attributes:nil error:NULL];
+	}
+	if ([manager fileExistsAtPath:applications isDirectory:&isDirectory] && isDirectory) {
+		return applications;
+	}
+	return home;
 }
 
 /* THE TWO QUESTIONS EVERY EXPORT ASKS, IN ONE PLACE so the toolbar's validation and the verb cannot disagree. */
