@@ -155,10 +155,7 @@ if(BUILD_TESTING)
       src/AGProjectInfoView.m
       src/AGToolbarIcons.m
       src/AGProjectWindowController.m)
-  target_include_directories(forge_build_sequence PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${AGORA_TOOLBAR_GLYPH_DIR}")
-  if(AGORA_TOOLBAR_GLYPHS)
-    add_dependencies(forge_build_sequence agora_toolbar_glyphs)
-  endif()
+  target_include_directories(forge_build_sequence PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_build_sequence PRIVATE AgoraApp::App)
   target_compile_definitions(forge_build_sequence PRIVATE
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
@@ -176,10 +173,7 @@ if(BUILD_TESTING)
       src/AGProjectInfoView.m
       src/AGToolbarIcons.m
       src/AGProjectWindowController.m)
-  target_include_directories(forge_verb_conflicts PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${AGORA_TOOLBAR_GLYPH_DIR}")
-  if(AGORA_TOOLBAR_GLYPHS)
-    add_dependencies(forge_verb_conflicts agora_toolbar_glyphs)
-  endif()
+  target_include_directories(forge_verb_conflicts PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_verb_conflicts PRIVATE AgoraApp::App)
   target_compile_definitions(forge_verb_conflicts PRIVATE
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
@@ -197,10 +191,7 @@ if(BUILD_TESTING)
       src/AGProjectInfoView.m
       src/AGToolbarIcons.m
       src/AGProjectWindowController.m)
-  target_include_directories(forge_text_layout PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${AGORA_TOOLBAR_GLYPH_DIR}")
-  if(AGORA_TOOLBAR_GLYPHS)
-    add_dependencies(forge_text_layout agora_toolbar_glyphs)
-  endif()
+  target_include_directories(forge_text_layout PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_text_layout PRIVATE AgoraApp::App)
   target_compile_definitions(forge_text_layout PRIVATE
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
@@ -228,10 +219,7 @@ if(BUILD_TESTING)
       src/AGBuilder.m
       src/AGSourceEditor.m
       src/AGProjectWindowController.m)
-  target_include_directories(forge_project_info PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${AGORA_TOOLBAR_GLYPH_DIR}")
-  if(AGORA_TOOLBAR_GLYPHS)
-    add_dependencies(forge_project_info agora_toolbar_glyphs)
-  endif()
+  target_include_directories(forge_project_info PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_project_info PRIVATE AgoraApp::App)
   target_compile_definitions(forge_project_info PRIVATE
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
@@ -249,10 +237,7 @@ if(BUILD_TESTING)
       src/AGBuilder.m
       src/AGSourceEditor.m
       src/AGProjectWindowController.m)
-  target_include_directories(forge_toolbar_state PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${AGORA_TOOLBAR_GLYPH_DIR}")
-  if(AGORA_TOOLBAR_GLYPHS)
-    add_dependencies(forge_toolbar_state agora_toolbar_glyphs)
-  endif()
+  target_include_directories(forge_toolbar_state PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_toolbar_state PRIVATE AgoraApp::App)
   target_compile_definitions(forge_toolbar_state PRIVATE
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
@@ -264,10 +249,7 @@ if(BUILD_TESTING)
   add_executable(forge_toolbar_icons
       tests/toolbar_icons.m
       src/AGToolbarIcons.m)
-  target_include_directories(forge_toolbar_icons PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${AGORA_TOOLBAR_GLYPH_DIR}")
-  if(AGORA_TOOLBAR_GLYPHS)
-    add_dependencies(forge_toolbar_icons agora_toolbar_glyphs)
-  endif()
+  target_include_directories(forge_toolbar_icons PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_toolbar_icons PRIVATE AgoraApp::App)
   add_test(NAME forge-toolbar-icons COMMAND forge_toolbar_icons)
 
@@ -281,10 +263,7 @@ if(BUILD_TESTING)
       src/AGBuilder.m
       src/AGSourceEditor.m
       src/AGProjectWindowController.m)
-  target_include_directories(forge_pane_sizes PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${AGORA_TOOLBAR_GLYPH_DIR}")
-  if(AGORA_TOOLBAR_GLYPHS)
-    add_dependencies(forge_pane_sizes agora_toolbar_glyphs)
-  endif()
+  target_include_directories(forge_pane_sizes PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_pane_sizes PRIVATE AgoraApp::App)
   target_compile_definitions(forge_pane_sizes PRIVATE
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
@@ -297,11 +276,7 @@ if(BUILD_TESTING)
       src/AGProjectInfoView.m
       src/AGBuilder.m
       src/AGToolbarIcons.m)
-  target_include_directories(forge_remove_file PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
-      "${AGORA_TOOLBAR_GLYPH_DIR}")
-  if(AGORA_TOOLBAR_GLYPHS)
-    add_dependencies(forge_remove_file agora_toolbar_glyphs)
-  endif()
+  target_include_directories(forge_remove_file PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_remove_file PRIVATE AgoraApp::App)
   target_compile_definitions(forge_remove_file PRIVATE
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
@@ -316,11 +291,7 @@ if(BUILD_TESTING)
       src/AGProjectInfoView.m
       src/AGBuilder.m
       src/AGToolbarIcons.m)
-  target_include_directories(forge_export PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
-      "${AGORA_TOOLBAR_GLYPH_DIR}")
-  if(AGORA_TOOLBAR_GLYPHS)
-    add_dependencies(forge_export agora_toolbar_glyphs)
-  endif()
+  target_include_directories(forge_export PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_export PRIVATE AgoraApp::App)
   target_compile_definitions(forge_export PRIVATE
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
@@ -335,16 +306,30 @@ if(BUILD_TESTING)
       src/AGProjectInfoView.m
       src/AGBuilder.m
       src/AGToolbarIcons.m)
-  target_include_directories(forge_new_file PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
-      "${AGORA_TOOLBAR_GLYPH_DIR}")
-  if(AGORA_TOOLBAR_GLYPHS)
-    add_dependencies(forge_new_file agora_toolbar_glyphs)
-  endif()
+  target_include_directories(forge_new_file PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_new_file PRIVATE AgoraApp::App)
   target_compile_definitions(forge_new_file PRIVATE
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
       AG_BUNDLE_ARCH="${_bundle_arch}")
   add_test(NAME forge-new-file COMMAND forge_new_file)
+
+  # **AND THE TOOLBAR'S WORDS, WHICH ARE A PREFERENCE WITH A TICK BESIDE THEM.** The View menu's row turns them off and on,
+  # a second window must start the way the last press left it, and the row's state has to be the preference rather than the
+  # last press — the three ways that arrangement can come apart.
+  add_executable(forge_toolbar_labels
+      tests/toolbar_labels.m
+      src/AGProject.m
+      src/AGProjectInfoView.m
+      src/AGToolbarIcons.m
+      src/AGBuilder.m
+      src/AGSourceEditor.m
+      src/AGProjectWindowController.m)
+  target_include_directories(forge_toolbar_labels PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  target_link_libraries(forge_toolbar_labels PRIVATE AgoraApp::App)
+  target_compile_definitions(forge_toolbar_labels PRIVATE
+      AG_BUNDLE_PLATFORM="${_bundle_platform}"
+      AG_BUNDLE_ARCH="${_bundle_arch}")
+  add_test(NAME forge-toolbar-labels COMMAND forge_toolbar_labels)
 
   add_test(NAME forge-pane-sizes COMMAND forge_pane_sizes)
 
@@ -358,10 +343,7 @@ if(BUILD_TESTING)
       src/AGBuilder.m
       src/AGSourceEditor.m
       src/AGProjectWindowController.m)
-  target_include_directories(forge_log_alignment PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${AGORA_TOOLBAR_GLYPH_DIR}")
-  if(AGORA_TOOLBAR_GLYPHS)
-    add_dependencies(forge_log_alignment agora_toolbar_glyphs)
-  endif()
+  target_include_directories(forge_log_alignment PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_log_alignment PRIVATE AgoraApp::App)
   target_compile_definitions(forge_log_alignment PRIVATE
       AG_BUNDLE_PLATFORM="${_bundle_platform}"
@@ -419,11 +401,8 @@ add_executable(forge_drag_cost
     src/AGBuilder.m
     src/AGSourceEditor.m
     src/AGProjectWindowController.m)
-target_include_directories(forge_drag_cost PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${AGORA_TOOLBAR_GLYPH_DIR}")
+target_include_directories(forge_drag_cost PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(forge_drag_cost PRIVATE AgoraApp::App)
 target_compile_definitions(forge_drag_cost PRIVATE
     AG_BUNDLE_PLATFORM="${_bundle_platform}"
     AG_BUNDLE_ARCH="${_bundle_arch}")
-if(AGORA_TOOLBAR_GLYPHS)
-  add_dependencies(forge_drag_cost agora_toolbar_glyphs)
-endif()

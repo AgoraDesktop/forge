@@ -65,6 +65,11 @@ static NSString *const AGToolbarAddFiles = @"AGToolbarAddFiles";
 static NSString *const AGToolbarExport = @"AGToolbarExport";
 static NSString *const AGToolbarRemoveFile = @"AGToolbarRemoveFile";
 
+/* **AND THE ONE PREFERENCE THE TOOLBAR HAS, BESIDE THE IDENTIFIERS IT IS BUILT FROM.** One key, one window class: the menu
+ * row that flips it and every window that obeys it go through the two class doors below, so there is no second place that
+ * could disagree about what a person chose. */
+static NSString *const AGToolbarLabelsKey = @"AGShowToolbarLabels";
+
 static NSError *AGForgeError(NSString *reason)
 {
 	return [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileNoSuchFileError
@@ -607,7 +612,10 @@ static NSError *AGForgeError(NSString *reason)
 
 	toolbar = [[NSToolbar alloc] initWithIdentifier:AGToolbarIdentifier];
 	[toolbar setDelegate:self];
-	[toolbar setDisplayMode:NSToolbarDisplayModeIconAndLabel];
+	/* **AND THE MODE IS THE PREFERENCE, READ WHEN THE WINDOW IS MADE**, so a second window is right the first time and a
+	 * relaunch does not flicker through the wrong one. */
+	[toolbar setDisplayMode:[AGProjectWindowController fn_toolbarLabelsVisible]
+		? NSToolbarDisplayModeIconAndLabel : NSToolbarDisplayModeIconOnly];
 	[toolbar setAllowsUserCustomization:NO];
 	[window setToolbar:toolbar];
 	[toolbar release];
@@ -1089,6 +1097,39 @@ static NSError *AGForgeError(NSString *reason)
 	(void)sender;
 	[_logView setHidden:![_logView isHidden]];
 }
+
+/* **THE LABELS, REMEMBERED AND APPLIED, IN ONE PLACE.** `NSToolbar`'s display mode is the tier's own vocabulary for this:
+ * `NSToolbarDisplayModeIconAndLabel` is a verb with its word under it, and `NSToolbarDisplayModeIconOnly` is the word
+ * gone. The default is ON — a window whose person has never chosen keeps what this application has always drawn — and it
+ * is written the moment it is changed, so a relaunch shows what the last press asked for. */
++ (BOOL)fn_toolbarLabelsVisible
+{
+	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+
+	if ([defaults objectForKey:AGToolbarLabelsKey] == nil) {
+		return YES;
+	}
+	return [defaults boolForKey:AGToolbarLabelsKey];
+}
+
++ (void)fn_setToolbarLabelsVisible:(BOOL)visible
+{
+	[[NSUserDefaults standardUserDefaults] setBool:visible forKey:AGToolbarLabelsKey];
+}
+
+- (void)fn_applyToolbarLabels
+{
+	[[[self window] toolbar] setDisplayMode:[AGProjectWindowController fn_toolbarLabelsVisible]
+		? NSToolbarDisplayModeIconAndLabel : NSToolbarDisplayModeIconOnly];
+}
+
++ (void)fn_showToolbarLabelsStateOn:(NSMenuItem *)item
+{
+	if (item != nil) {
+		[item setState:[self fn_toolbarLabelsVisible] ? NSOnState : NSOffState];
+	}
+}
+
 
 /* **THE METADATA HAS A WINDOW OF ITS OWN NOW.** It was an alert — a modal loop inside a menu pick, whose lifetime was
  * the caller's stack frame and whose dismissal was the toolkit's problem. `AGProjectInfoWindowController` is a panel

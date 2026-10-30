@@ -37,6 +37,14 @@ no header at all. Regenerate with
 
 and commit the result (`src/AGToolbarIcons.m` keeps its drawn fallback for a checkout that deletes the header).
 
+**Their words are a preference.** `View > Show Toolbar Labels` — ticked while the labels are showing, which is the
+default — is `NSToolbar`'s display mode and nothing more: `NSToolbarDisplayModeIconAndLabel` is a verb with its word under
+it and `NSToolbarDisplayModeIconOnly` is the word gone, so the band is the same band with one less row of text in it. The
+choice is written to `NSUserDefaults` (`AGShowToolbarLabels`) when the row is pressed, applied to every open project
+window, and read when a window is built — so a second window and a relaunch both start the way the last press left it. The
+row's tick comes from `-validateMenuItem:`, which is the menu asking the preference before it draws, not a flag the last
+press left lying around: `tests/toolbar_labels.m` asserts the default, both directions, a second window, and the tick.
+
 They are **template images**, so the toolbar inks them: a disabled item's glyph is drawn in exactly the grey of its label
 and an enabled one in the label's own ink, which is why *Stop* looks greyed above and *Build* does not. **The Code | Info
 switch wears two of them and NO WORDS** — `code-dots` on the editor's segment and `info-circle` on the metadata pane's,

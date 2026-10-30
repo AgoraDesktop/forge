@@ -25,6 +25,7 @@
 #import <AppKit/NSAlert.h>
 #import <AppKit/NSApplication.h>
 #import <AppKit/NSEvent.h>
+#import <AppKit/NSCell.h>	/* `NSOnState`/`NSOffState`: what a checkmark row's `state` is */
 #import <AppKit/NSMenu.h>
 #import <AppKit/NSMenuItem.h>
 #import <AppKit/NSOpenPanel.h>
@@ -86,6 +87,7 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 - (void)exportApp:(id)sender;
 - (void)saveDocument:(id)sender;
 - (void)toggleBuildLog:(id)sender;
+- (void)toggleToolbarLabels:(id)sender;
 - (void)runSteps:(NSString *)list;
 @end
 
@@ -304,6 +306,36 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	[[self frontController] toggleBuildLog:sender];
 }
 
+/* **ONE PREFERENCE, EVERY WINDOW, AND THE ROW SAYS WHICH WAY IT WENT.** The labels are not a per-window choice, so the new
+ * answer is written once and applied to every project window that is open — including the ones behind this one. The
+ * sender's state is set here as well as in `-validateMenuItem:`, because a press that leaves a stale tick until the next
+ * opening is a row that lies about what it just did. */
+- (void)toggleToolbarLabels:(id)sender
+{
+	BOOL visible = ![AGProjectWindowController fn_toolbarLabelsVisible];
+	NSUInteger i;
+
+	[AGProjectWindowController fn_setToolbarLabelsVisible:visible];
+	for (i = 0; i < [_windowControllers count]; i++) {
+		[[_windowControllers objectAtIndex:i] fn_applyToolbarLabels];
+	}
+	if ([sender isKindOfClass:[NSMenuItem class]]) {
+		[AGProjectWindowController fn_showToolbarLabelsStateOn:(NSMenuItem *)sender];
+	}
+}
+
+/* **AND THE MENU ASKS BEFORE IT DRAWS, WHICH IS WHERE THE TICK COMES FROM.** Every row this object owns is enabled —
+ * that is what answering YES everywhere preserves, and it is what the menu already did by finding the target for each
+ * action — and the one row with a STATE is told which state the preference is in NOW, so a tick set by an edit to the
+ * defaults store (or by a second window's press) is never stale. */
+- (BOOL)validateMenuItem:(NSMenuItem *)item
+{
+	if ([item action] == @selector(toggleToolbarLabels:)) {
+		[AGProjectWindowController fn_showToolbarLabelsStateOn:item];
+	}
+	return YES;
+}
+
 /* THE FILE'S TWO ROWS ARE THIS OBJECT'S, because a project is opened by the application and not by a window. */
 - (void)installMenu
 {
@@ -356,6 +388,10 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	AGRow(project, @"Choose Icon…", @selector(chooseIcon:), self, nil, 0);
 
 	AGRow(view, @"Show Build Log", @selector(toggleBuildLog:), self, nil, 0);
+	/* **AND THE TOOLBAR'S WORDS, WHICH ARE A CHECKMARK AND NOT A SECOND KIND OF ROW.** The state is put on the item when the
+	 * menu is opened (`-validateMenuItem:` below), so the tick always describes the preference and not the last time this
+	 * action happened to run. */
+	AGRow(view, @"Show Toolbar Labels", @selector(toggleToolbarLabels:), self, nil, 0);
 
 	AGRow(window, @"Minimize", @selector(performMiniaturize:), nil, @"m", NSCommandKeyMask);
 	AGRow(window, @"Bring All to Front", @selector(arrangeInFront:), application, nil, 0);

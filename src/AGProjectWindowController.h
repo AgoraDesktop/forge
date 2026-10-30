@@ -23,7 +23,7 @@
 #import <AppKit/NSWindowController.h>
 
 @class AGProject, AGProjectFile, AGSourceEditor, AGBuilder, AGProjectInfoView, NSOutlineView, NSTextView,
-       NSSegmentedControl;
+       NSSegmentedControl, NSMenuItem;
 
 @interface AGProjectWindowController : NSWindowController
 {
@@ -114,6 +114,19 @@
 - (BOOL)fn_createFileAtPath:(NSString *)path error:(NSError **)error;
 - (void)saveDocument:(id)sender;
 - (void)toggleBuildLog:(id)sender;
+
+/* **THE TOOLBAR'S LABELS, WHICH ARE A PREFERENCE AND NOT A PER-WINDOW CHOICE.** `NSToolbar`'s display mode is the tier's
+ * own answer — icon-and-label, or icon alone — and turning the words off is how a person makes room for more verbs. The
+ * choice is remembered under `AGShowToolbarLabels` and DEFAULTS TO ON, because a window that has never been told
+ * otherwise draws the labels it has always drawn. `-fn_applyToolbarLabels` is the door that puts the stored answer on THIS
+ * window's toolbar, which is what a second window and a menu toggle both need. */
++ (BOOL)fn_toolbarLabelsVisible;
++ (void)fn_setToolbarLabelsVisible:(BOOL)visible;
+- (void)fn_applyToolbarLabels;
+
+/* **AND THE CHECKMARK, PUT ON A ROW FROM THE PREFERENCE** — one place, so the menu's update walk and the press that just
+ * happened cannot disagree about which state to draw. `NSOnState` (a tick) means the labels are showing. */
++ (void)fn_showToolbarLabelsStateOn:(NSMenuItem *)item;
 
 @end
 
