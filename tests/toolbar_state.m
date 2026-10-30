@@ -31,6 +31,20 @@
 
 static int s_failed;
 
+/* **THE APPLICATION'S TWO NEW VERBS, STOOD IN FOR BY THIS PROBE.** `-itemForItemIdentifier:` targets the application's
+ * DELEGATE for New and Open — as every row Forge builds names its target — so a probe that builds a window with no
+ * delegate would be asking about a button with no verb behind it. The selectors are the contract being measured; nothing
+ * here runs them. */
+@interface AGToolbarStandIn : NSObject
+- (void)newProject:(id)sender;
+- (void)openProject:(id)sender;
+@end
+
+@implementation AGToolbarStandIn
+- (void)newProject:(id)sender { (void)sender; }
+- (void)openProject:(id)sender { (void)sender; }
+@end
+
 static void check(int ok, const char *what)
 {
 	printf("  %s   %s\n", ok ? "ok  " : "FAIL", what);
@@ -88,6 +102,7 @@ static BOOL item_enabled(AGProjectWindowController *controller, NSString *identi
 int main(void)
 {
 	@autoreleasepool {
+		AGToolbarStandIn *standIn = [[AGToolbarStandIn alloc] init];
 		const char *tmp = getenv("TMPDIR");
 		NSString *directory = [NSString stringWithFormat:@"%s/forge-toolbar-%d",
 			(tmp != NULL && tmp[0] != '\0') ? tmp : "/tmp", (int)getpid()];
@@ -109,18 +124,20 @@ int main(void)
 						       error:&error];
 		[project addFileAtAbsolutePath:source error:NULL];
 		[project writeToURL:URL error:NULL];
+		[[NSApplication sharedApplication] setDelegate:standIn];
 		controller = [[AGProjectWindowController alloc] initWithProject:project];
 		(void)[controller window];
 
-		/* 0. **THE ORDER IS PART OF THE DESIGN**: Build and Run and Export — what makes something, and what you do with what
-		 * was made — then a separator, then the two corrections, then the project edit, then the flexible space that
-		 * pushes the mode switch to the right edge. */
+		/* 0. **THE ORDER IS PART OF THE DESIGN**: the two verbs that make or open a project come first — nothing else can
+		 * mean anything until one exists — then the four groups, then the flexible space that pushes the mode switch to
+		 * the right edge. */
 		{
 			NSArray *items = [[[controller window] toolbar] items];
 			/* **FOUR GROUPS: WHAT ACTS, AND WHAT UNDOES IT.** Each pair is one subject — the build, the product, the
 			 * project's files — and Export stands alone because it is the only row that acts on the result rather than
 			 * changing the project. The fill space puts the mode switch at the right edge. */
 			NSArray *wanted = [NSArray arrayWithObjects:
+				@"AGToolbarNewProject", @"AGToolbarOpenProject", NSToolbarSeparatorItemIdentifier,
 				@"AGToolbarBuild", @"AGToolbarClean", NSToolbarSeparatorItemIdentifier,
 				@"AGToolbarRun", @"AGToolbarStop", NSToolbarSeparatorItemIdentifier,
 				@"AGToolbarAddFiles", @"AGToolbarRemoveFile", NSToolbarSeparatorItemIdentifier,
@@ -140,7 +157,48 @@ int main(void)
 				}
 				printf("       toolbar order: %s\n", [[got componentsJoinedByString:@", "] UTF8String]);
 			}
-			check(matches, "the toolbar is Build, Clean | Run, Stop | Add, Remove | Export, space, the mode switch");
+			check(matches, "the toolbar is New, Open | Build, Clean | Run, Stop | Add, Remove | Export, space, the mode switch");
+		}
+
+		/* 0b. **AND THE TWO NEW ROWS ARE THE APPLICATION'S VERBS, NAMED AND ROUTED LIKE THE FILE MENU'S.** A project
+		 * window edits the project it was given; making one or opening one belongs to the application, so the item's
+		 * action is the delegate's and its label is what the band shows. The PICTURE is the system's symbol (`file-plus`,
+		 * `folder-open` from the Tabler theme) and a machine without that theme gets the row as a label, which is what
+		 * the band does with any item that has none — so what is asserted here is the verb and the word, not the ink. */
+		{
+			NSArray *items = [[[controller window] toolbar] items];
+			NSUInteger i;
+			BOOL newOK = NO, openOK = NO;
+
+			for (i = 0; i < [items count]; i++) {
+				NSToolbarItem *item = [items objectAtIndex:i];
+
+				if ([[item itemIdentifier] isEqualToString:@"AGToolbarNewProject"]) {
+					newOK = [[item label] isEqualToString:@"New Project"] &&
+						[item action] == @selector(newProject:);
+				}
+				if ([[item itemIdentifier] isEqualToString:@"AGToolbarOpenProject"]) {
+					openOK = [[item label] isEqualToString:@"Open Project"] &&
+						[item action] == @selector(openProject:);
+				}
+			}
+			check(newOK, "the first row is New Project, naming the application's -newProject:");
+			{
+				BOOL targeted = YES;
+				for (i = 0; i < [items count]; i++) {
+					NSToolbarItem *item = [items objectAtIndex:i];
+
+					if ([[item itemIdentifier] isEqualToString:@"AGToolbarNewProject"] ||
+					    [[item itemIdentifier] isEqualToString:@"AGToolbarOpenProject"]) {
+						targeted = targeted && [item target] == standIn;
+					}
+				}
+				check(targeted, "and both are TARGETED at the application's delegate, which is where the verb lives");
+			}
+			check(openOK, "and the second is Open Project, naming -openProject:");
+			check(item_enabled(controller, @"AGToolbarNewProject") &&
+			      item_enabled(controller, @"AGToolbarOpenProject"),
+			      "both are enabled: they never depend on what this window has built");
 		}
 
 		/* 1. NOTHING BUILT: Build is the only verb that can do anything. */

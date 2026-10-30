@@ -56,6 +56,9 @@
 #include <stdlib.h>
 
 static NSString *const AGToolbarIdentifier = @"AGProjectToolbar";
+/* THE FIRST GROUP: the two verbs that OPEN a project, which belong to the application rather than to one window. */
+static NSString *const AGToolbarNewProject = @"AGToolbarNewProject";
+static NSString *const AGToolbarOpenProject = @"AGToolbarOpenProject";
 static NSString *const AGToolbarBuild = @"AGToolbarBuild";
 static NSString *const AGToolbarClean = @"AGToolbarClean";
 static NSString *const AGToolbarRun = @"AGToolbarRun";
@@ -673,12 +676,16 @@ static NSError *AGForgeError(NSString *reason)
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar
 {
 	(void)toolbar;
-	/* **FOUR GROUPS, EACH A PAIR OF VERBS AND ONE RULE: WHAT ACTS, AND WHAT UNDOES IT.** Build and Clean are the
-	 * BUILD — one makes it, one takes it away; Run and Stop are the PRODUCT; Add and Remove are the PROJECT'S FILE
-	 * LIST, which is what the browser beside them shows; and Export stands alone because it is the only row that acts
-	 * on the result rather than changing the project. The separators are the toolbar's own standard identifiers, and
-	 * the flexible space pushes the Code/Info switch to the right edge, where a mode switch belongs. */
+	/* **THE PROJECT ITSELF COMES FIRST, THEN FOUR GROUPS OF VERBS — each a pair, and one rule.** New and Open are what
+	 * a person reaches for before any of the others can mean anything: they make a project or bring one in, and they are
+	 * the APPLICATION'S verbs, not this window's. After them: Build and Clean are the BUILD — one makes it, one takes it
+	 * away; Run and Stop are the PRODUCT; Add and Remove are the PROJECT'S FILE LIST, which is what the browser beside
+	 * them shows; and Export stands alone because it is the only row that acts on the result rather than changing the
+	 * project. The separators are the toolbar's own standard identifiers, and the flexible space pushes the Code/Info
+	 * switch to the right edge, where a mode switch belongs. */
 	return [NSArray arrayWithObjects:
+		AGToolbarNewProject, AGToolbarOpenProject,
+		NSToolbarSeparatorItemIdentifier,
 		AGToolbarBuild, AGToolbarClean,
 		NSToolbarSeparatorItemIdentifier,
 		AGToolbarRun, AGToolbarStop,
@@ -702,6 +709,25 @@ static NSError *AGForgeError(NSString *reason)
 {
 	(void)toolbar;
 	(void)flag;
+	if ([identifier isEqualToString:AGToolbarNewProject] || [identifier isEqualToString:AGToolbarOpenProject]) {
+		BOOL making = [identifier isEqualToString:AGToolbarNewProject];
+		NSToolbarItem *item = [self fn_toolbarItem:identifier
+						     label:(making ? @"New Project" : @"Open Project")
+						    action:(making ? @selector(newProject:) : @selector(openProject:))
+						   toolTip:(making ? @"Start a new project" : @"Open a project")];
+
+		/* **THE TARGET IS THE APPLICATION, BECAUSE THE VERB IS ITS.** A project window edits the project it was given;
+		 * making one or opening one is the application's, which is where the File menu's rows point too, so the band and
+		 * the menu cannot drift apart and neither gets a second copy of the verb. Naming it is this application's own
+		 * choice — every row Forge builds names its target — and not a workaround: AppKit's responder walk ends at the
+		 * APPLICATION DELEGATE, so a nil-target item would find the same object. */
+		[item setTarget:[[NSApplication sharedApplication] delegate]];
+		/* **AND THE PICTURES ARE THE SYSTEM'S SYMBOLS**, asked for by name: a page with a plus, and an open folder. A
+		 * machine whose prefix carries no icon theme gets these two rows as LABELS, which is what the band does with any
+		 * item that has no picture — usable, rather than a blank cell. */
+		[item setImage:[NSImage imageNamed:(making ? @"file-plus" : @"folder-open")]];
+		return item;
+	}
 	if ([identifier isEqualToString:AGToolbarBuild]) {
 		NSToolbarItem *item = [self fn_toolbarItem:identifier label:@"Build" action:@selector(build:)
 						   toolTip:@"Configure and build the project"];
