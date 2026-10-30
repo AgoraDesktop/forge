@@ -133,14 +133,15 @@ int main(void)
 		 * the right edge. */
 		{
 			NSArray *items = [[[controller window] toolbar] items];
-			/* **FOUR GROUPS: WHAT ACTS, AND WHAT UNDOES IT.** Each pair is one subject — the build, the product, the
-			 * project's files — and Export stands alone because it is the only row that acts on the result rather than
-			 * changing the project. The fill space puts the mode switch at the right edge. */
+			/* **THE PROJECT FIRST, THEN THE RESULT.** New and Open make a project or bring one in; Add and Remove act on
+			 * the project's file list; then the pairs that act on the BUILD and the PRODUCT — what acts, and what undoes
+			 * it — and Export last, because it is the only row that takes the result out rather than changing it. The fill
+			 * space puts the mode switch at the right edge. */
 			NSArray *wanted = [NSArray arrayWithObjects:
 				@"AGToolbarNewProject", @"AGToolbarOpenProject", NSToolbarSeparatorItemIdentifier,
+				@"AGToolbarAddFiles", @"AGToolbarRemoveFile", NSToolbarSeparatorItemIdentifier,
 				@"AGToolbarBuild", @"AGToolbarClean", NSToolbarSeparatorItemIdentifier,
 				@"AGToolbarRun", @"AGToolbarStop", NSToolbarSeparatorItemIdentifier,
-				@"AGToolbarAddFiles", @"AGToolbarRemoveFile", NSToolbarSeparatorItemIdentifier,
 				@"AGToolbarExport", NSToolbarFlexibleSpaceItemIdentifier,
 				@"AGToolbarDetail", nil];
 			NSUInteger i;
@@ -157,7 +158,7 @@ int main(void)
 				}
 				printf("       toolbar order: %s\n", [[got componentsJoinedByString:@", "] UTF8String]);
 			}
-			check(matches, "the toolbar is New, Open | Build, Clean | Run, Stop | Add, Remove | Export, space, the mode switch");
+			check(matches, "the toolbar is New, Open | Add, Remove | Build, Clean | Run, Stop | Export, space, the mode switch");
 		}
 
 		/* 0b. **AND THE TWO NEW ROWS ARE THE APPLICATION'S VERBS, NAMED AND ROUTED LIKE THE FILE MENU'S.** A project

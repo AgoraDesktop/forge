@@ -676,21 +676,21 @@ static NSError *AGForgeError(NSString *reason)
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar
 {
 	(void)toolbar;
-	/* **THE PROJECT ITSELF COMES FIRST, THEN FOUR GROUPS OF VERBS — each a pair, and one rule.** New and Open are what
-	 * a person reaches for before any of the others can mean anything: they make a project or bring one in, and they are
-	 * the APPLICATION'S verbs, not this window's. After them: Build and Clean are the BUILD — one makes it, one takes it
-	 * away; Run and Stop are the PRODUCT; Add and Remove are the PROJECT'S FILE LIST, which is what the browser beside
-	 * them shows; and Export stands alone because it is the only row that acts on the result rather than changing the
-	 * project. The separators are the toolbar's own standard identifiers, and the flexible space pushes the Code/Info
-	 * switch to the right edge, where a mode switch belongs. */
+	/* **THE PROJECT FIRST — MADE OR BROUGHT IN, THEN WHAT IS IN IT — AND THE BUILD AFTER THAT.** New and Open are what a
+	 * person reaches for before any of the others can mean anything: they make a project or bring one in, and they are the
+	 * APPLICATION'S verbs, not this window's. Add and Remove come next, because they act on the PROJECT ITSELF — its file
+	 * list, which is what the browser beside them shows. Then the verbs that act on the RESULT: Build and Clean are the
+	 * BUILD (one makes it, one takes it away), Run and Stop are the PRODUCT, and Export stands alone because it is the only
+	 * row that takes the result out of Forge rather than changing it. The separators are the toolbar's own standard
+	 * identifiers, and the flexible space pushes the Code/Info switch to the right edge, where a mode switch belongs. */
 	return [NSArray arrayWithObjects:
 		AGToolbarNewProject, AGToolbarOpenProject,
+		NSToolbarSeparatorItemIdentifier,
+		AGToolbarAddFiles, AGToolbarRemoveFile,
 		NSToolbarSeparatorItemIdentifier,
 		AGToolbarBuild, AGToolbarClean,
 		NSToolbarSeparatorItemIdentifier,
 		AGToolbarRun, AGToolbarStop,
-		NSToolbarSeparatorItemIdentifier,
-		AGToolbarAddFiles, AGToolbarRemoveFile,
 		NSToolbarSeparatorItemIdentifier,
 		AGToolbarExport,
 		NSToolbarFlexibleSpaceItemIdentifier,
