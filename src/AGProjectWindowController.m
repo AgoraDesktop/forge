@@ -712,7 +712,7 @@ static NSError *AGForgeError(NSString *reason)
 	if ([identifier isEqualToString:AGToolbarNewProject] || [identifier isEqualToString:AGToolbarOpenProject]) {
 		BOOL making = [identifier isEqualToString:AGToolbarNewProject];
 		NSToolbarItem *item = [self fn_toolbarItem:identifier
-						     label:(making ? @"New Project" : @"Open Project")
+						     label:(making ? @"New" : @"Open")
 						    action:(making ? @selector(newProject:) : @selector(openProject:))
 						   toolTip:(making ? @"Start a new project" : @"Open a project")];
 

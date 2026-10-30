@@ -174,15 +174,15 @@ int main(void)
 				NSToolbarItem *item = [items objectAtIndex:i];
 
 				if ([[item itemIdentifier] isEqualToString:@"AGToolbarNewProject"]) {
-					newOK = [[item label] isEqualToString:@"New Project"] &&
+					newOK = [[item label] isEqualToString:@"New"] &&
 						[item action] == @selector(newProject:);
 				}
 				if ([[item itemIdentifier] isEqualToString:@"AGToolbarOpenProject"]) {
-					openOK = [[item label] isEqualToString:@"Open Project"] &&
+					openOK = [[item label] isEqualToString:@"Open"] &&
 						[item action] == @selector(openProject:);
 				}
 			}
-			check(newOK, "the first row is New Project, naming the application's -newProject:");
+			check(newOK, "the first row says New and names the application's -newProject:");
 			{
 				BOOL targeted = YES;
 				for (i = 0; i < [items count]; i++) {

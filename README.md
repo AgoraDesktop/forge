@@ -52,10 +52,14 @@ because a row of captions in a band of pictures reads as a text control and two 
 The names are on the toolbar item, which is where a name for the pair belongs, and the control is the width of its own
 measurement (`-sizeToFit`) rather than of two label columns.
 
-The order is **Build · Clean | Run · Stop | Add · Remove | Export** … flexible space … **Code | Info**: four groups, each
-a pair of verbs and one rule — what acts, and what undoes it. Build and Clean are the BUILD, Run and Stop are the
-PRODUCT, Add and Remove are the project's FILE LIST (what the browser beside them shows), and Export stands alone
-because it is the only row that acts on the result rather than changing the project. The flexible space pushes the mode
+The order is **New · Open | Build · Clean | Run · Stop | Add · Remove | Export** … flexible space … **Code | Info**:
+the two verbs that make a project or bring one in come first, because nothing else on the strip can mean anything until
+one exists — and they are the APPLICATION'S verbs, the same actions the File menu names, so the band and the menu point
+at one place. Then four groups, each a pair of verbs and one rule — what acts, and what undoes it. Build and Clean are
+the BUILD, Run and Stop are the PRODUCT, Add and Remove are the project's FILE LIST (what the browser beside them
+shows), and Export stands alone because it is the only row that acts on the result rather than changing the project.
+The rows say `New` and `Open` because a toolbar's labels sit under a picture at 24 points, and the tooltip carries the
+long form. The flexible space pushes the mode
 switch to the right edge, where a mode switch belongs. `tests/toolbar_state.m` asserts that sequence, separators
 included.
 
