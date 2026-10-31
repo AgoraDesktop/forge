@@ -1,7 +1,7 @@
 /*
  * AGProject.m — the manifest's reader, its writer, and the CMake it generates.
  *
- * Copyright © 2026 Kyle J. Cardoza.
+x * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: GPL-3.0-or-later
  *

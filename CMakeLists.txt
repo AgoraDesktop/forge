@@ -49,7 +49,9 @@ set(FORGE_SOURCES
     src/AGSourceEditor.m
     src/AGProjectInfoView.m
     src/AGToolbarIcons.m
-    src/AGProjectWindowController.m)
+    src/AGProjectWindowController.m
+    src/AGEditorTabs.m
+    src/AGTabStrip.m)
 
 add_executable(Forge ${FORGE_SOURCES})
 
@@ -154,7 +156,9 @@ if(BUILD_TESTING)
       src/AGSourceEditor.m
       src/AGProjectInfoView.m
       src/AGToolbarIcons.m
-      src/AGProjectWindowController.m)
+      src/AGProjectWindowController.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m)
   target_include_directories(forge_build_sequence PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_build_sequence PRIVATE AgoraApp::App)
   target_compile_definitions(forge_build_sequence PRIVATE
@@ -172,7 +176,9 @@ if(BUILD_TESTING)
       src/AGSourceEditor.m
       src/AGProjectInfoView.m
       src/AGToolbarIcons.m
-      src/AGProjectWindowController.m)
+      src/AGProjectWindowController.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m)
   target_include_directories(forge_verb_conflicts PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_verb_conflicts PRIVATE AgoraApp::App)
   target_compile_definitions(forge_verb_conflicts PRIVATE
@@ -190,7 +196,9 @@ if(BUILD_TESTING)
       src/AGSourceEditor.m
       src/AGProjectInfoView.m
       src/AGToolbarIcons.m
-      src/AGProjectWindowController.m)
+      src/AGProjectWindowController.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m)
   target_include_directories(forge_text_layout PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_text_layout PRIVATE AgoraApp::App)
   target_compile_definitions(forge_text_layout PRIVATE
@@ -208,6 +216,17 @@ if(BUILD_TESTING)
   target_link_libraries(forge_line_numbers PRIVATE AgoraApp::App)
   add_test(NAME forge-line-numbers COMMAND forge_line_numbers)
 
+  # **A TAB PER OPEN FILE, AND THE TWO RULES ABOUT CLOSING ONE.** Offscreen: the strip is an `NSTabView` and an editor is
+  # a scroll view over a text view, so "what is on screen" is a question about views rather than about a compositor.
+  add_executable(forge_tabs
+      tests/tabs.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m
+      src/AGSourceEditor.m)
+  target_include_directories(forge_tabs PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  target_link_libraries(forge_tabs PRIVATE AgoraApp::App)
+  add_test(NAME forge-tabs COMMAND forge_tabs)
+
   # **THE METADATA PANEL, DRIVEN END TO END.** It is a window rather than an alert, so a probe can fill its fields,
   # press Apply and read the manifest back — and can assert that showing it enters NO modal session, which is the whole
   # of what the change from an alert bought.
@@ -218,7 +237,9 @@ if(BUILD_TESTING)
       src/AGToolbarIcons.m
       src/AGBuilder.m
       src/AGSourceEditor.m
-      src/AGProjectWindowController.m)
+      src/AGProjectWindowController.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m)
   target_include_directories(forge_project_info PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_project_info PRIVATE AgoraApp::App)
   target_compile_definitions(forge_project_info PRIVATE
@@ -236,7 +257,9 @@ if(BUILD_TESTING)
       src/AGToolbarIcons.m
       src/AGBuilder.m
       src/AGSourceEditor.m
-      src/AGProjectWindowController.m)
+      src/AGProjectWindowController.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m)
   target_include_directories(forge_toolbar_state PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_toolbar_state PRIVATE AgoraApp::App)
   target_compile_definitions(forge_toolbar_state PRIVATE
@@ -262,7 +285,9 @@ if(BUILD_TESTING)
       src/AGToolbarIcons.m
       src/AGBuilder.m
       src/AGSourceEditor.m
-      src/AGProjectWindowController.m)
+      src/AGProjectWindowController.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m)
   target_include_directories(forge_pane_sizes PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_pane_sizes PRIVATE AgoraApp::App)
   target_compile_definitions(forge_pane_sizes PRIVATE
@@ -272,6 +297,8 @@ if(BUILD_TESTING)
       tests/remove_file.m
       src/AGProject.m
       src/AGProjectWindowController.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m
       src/AGSourceEditor.m
       src/AGProjectInfoView.m
       src/AGBuilder.m
@@ -287,6 +314,8 @@ if(BUILD_TESTING)
       tests/export.m
       src/AGProject.m
       src/AGProjectWindowController.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m
       src/AGSourceEditor.m
       src/AGProjectInfoView.m
       src/AGBuilder.m
@@ -302,6 +331,8 @@ if(BUILD_TESTING)
       tests/new_file.m
       src/AGProject.m
       src/AGProjectWindowController.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m
       src/AGSourceEditor.m
       src/AGProjectInfoView.m
       src/AGBuilder.m
@@ -323,7 +354,9 @@ if(BUILD_TESTING)
       src/AGToolbarIcons.m
       src/AGBuilder.m
       src/AGSourceEditor.m
-      src/AGProjectWindowController.m)
+      src/AGProjectWindowController.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m)
   target_include_directories(forge_toolbar_labels PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_toolbar_labels PRIVATE AgoraApp::App)
   target_compile_definitions(forge_toolbar_labels PRIVATE
@@ -342,7 +375,9 @@ if(BUILD_TESTING)
       src/AGToolbarIcons.m
       src/AGBuilder.m
       src/AGSourceEditor.m
-      src/AGProjectWindowController.m)
+      src/AGProjectWindowController.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m)
   target_include_directories(forge_log_alignment PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_libraries(forge_log_alignment PRIVATE AgoraApp::App)
   target_compile_definitions(forge_log_alignment PRIVATE
@@ -400,7 +435,9 @@ add_executable(forge_drag_cost
     src/AGToolbarIcons.m
     src/AGBuilder.m
     src/AGSourceEditor.m
-    src/AGProjectWindowController.m)
+    src/AGProjectWindowController.m
+    src/AGEditorTabs.m
+    src/AGTabStrip.m)
 target_include_directories(forge_drag_cost PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(forge_drag_cost PRIVATE AgoraApp::App)
 target_compile_definitions(forge_drag_cost PRIVATE

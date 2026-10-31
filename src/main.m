@@ -86,6 +86,7 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 - (void)newFile:(id)sender;
 - (void)exportApp:(id)sender;
 - (void)saveDocument:(id)sender;
+- (void)closeTab:(id)sender;
 - (void)toggleBuildLog:(id)sender;
 - (void)toggleToolbarLabels:(id)sender;
 - (void)runSteps:(NSString *)list;
@@ -301,6 +302,14 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	[[self frontController] saveDocument:sender];
 }
 
+/* **THE SAME FORWARDING AS `-saveDocument:`, AND FOR THE SAME REASON: the verb belongs to a project window.** It answers
+ * nothing on purpose — a refusal has already been written to that window's log, which is where a person looks after
+ * pressing it and seeing nothing happen. */
+- (void)closeTab:(id)sender
+{
+	[[self frontController] closeTab:sender];
+}
+
 - (void)toggleBuildLog:(id)sender
 {
 	[[self frontController] toggleBuildLog:sender];
@@ -354,7 +363,11 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	AGRow(file, @"Open Project…", @selector(openProject:), self, @"o", NSCommandKeyMask);
 	[file addItem:[NSMenuItem separatorItem]];
 	AGRow(file, @"Save", @selector(saveDocument:), self, @"s", NSCommandKeyMask);
-	AGRow(file, @"Close Window", @selector(performClose:), nil, @"w", NSCommandKeyMask);
+	/* **⌘W CLOSES THE TAB, AND ⌘⇧W THE WINDOW — WHICH IS THE MAC'S OWN ORDER AND THE ONE AN EDITOR WITH TABS NEEDS.**
+	 * A window can now hold several files, so "close" has two meanings and the frequent one is the tab: the window
+	 * behind it holds the other files a person is still working in. */
+	AGRow(file, @"Close Tab", @selector(closeTab:), self, @"w", NSCommandKeyMask);
+	AGRow(file, @"Close Window", @selector(performClose:), nil, @"w", NSCommandKeyMask | NSShiftKeyMask);
 
 	AGRow(edit, @"Undo", @selector(undo:), nil, @"z", NSCommandKeyMask);
 	AGRow(edit, @"Redo", @selector(redo:), nil, @"z", NSCommandKeyMask | NSShiftKeyMask);

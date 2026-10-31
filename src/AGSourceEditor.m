@@ -227,6 +227,12 @@ static BOOL AGIsDigit(unichar c)
  * The editor.
  * --------------------------------------------------------------------------------------------------- */
 
+/* THE ONE PRIVATE DOOR: the announcement a tab and the window both act on, declared here because `-setSource:`
+ * reaches it before its definition does. */
+@interface AGSourceEditor ()
+- (void)fn_announce;
+@end
+
 @implementation AGSourceEditor
 
 - (instancetype)initWithFrame:(NSRect)frame
@@ -264,6 +270,10 @@ static BOOL AGIsDigit(unichar c)
 		[_scrollView setVerticalRulerView:_ruler];
 		[_scrollView setRulersVisible:YES];
 
+		/* **THE EDITOR IS ITS TEXT VIEW'S DELEGATE, WHICH IS WHERE BOTH REPORTS COME FROM.** Every edit ends in
+		 * `-textDidChange:` (the same announcement `NSText`'s own commands make), and that is the moment the colour pass
+		 * re-runs and the buffer counts as unsaved — one hook, both facts. */
+		[textView setDelegate:self];
 		[self addSubview:_scrollView];
 	}
 	return self;
@@ -326,6 +336,9 @@ static BOOL AGIsDigit(unichar c)
 - (void)setSource:(NSString *)source
 {
 	[_textView setString:(source != nil ? source : @"")];
+	/* **A FILE'S OWN TEXT IS NOT AN EDIT.** Filling the buffer from disk — or from a new file's skeleton — is the one
+	 * moment the text and the file agree, so the bullet goes and the tab stops saying "unsaved". */
+	_dirty = NO;
 	/* **THE INSERTION POINT GOES TO THE TOP, AND `-setString:` IS WHY IT HAS TO BE SAID.** That door places the
 	 * insertion point at the END of the text, so a freshly opened file arrived scrolled to its last page — MEASURED
 	 * in the first screenshot where the editor opened at line 8 of the end. */
@@ -333,11 +346,53 @@ static BOOL AGIsDigit(unichar c)
 	[self fn_placeScrollView];
 	[_textView scrollRangeToVisible:NSMakeRange(0, 0)];
 	[self highlight];
+	[self fn_announce];
 }
 
 - (NSString *)source
 {
+	/* **ASKING FOR THE TEXT IS NOT AN EDIT EITHER**, and `-string` does not announce one — this door is read by a save
+	 * and by a build's diagnostics. */
 	return [_textView string];
+}
+
+- (BOOL)isDirty
+{
+	return _dirty;
+}
+
+- (void)setDirty:(BOOL)flag
+{
+	_dirty = flag ? YES : NO;
+	[self fn_announce];
+}
+
+- (void)setTarget:(id)target
+{
+	_target = target;	/* NOT RETAINED */
+}
+
+- (void)setAction:(SEL)action
+{
+	_action = action;
+}
+
+- (void)fn_announce
+{
+	if (_target != nil && _action != NULL && [_target respondsToSelector:_action]) {
+		[_target performSelector:_action withObject:self];
+	}
+}
+
+/* **EVERY EDIT, IN ONE PLACE: THE BUFFER IS UNSAVED, THE COLOUR PASS RUNS, AND THE STRIP IS TOLD.** The pass is over the
+ * whole string, which is the design this file states at the top — a source file here is a few hundred lines, and the
+ * alternative is a token stream that has to be kept in step with the text. */
+- (void)textDidChange:(NSNotification *)notification
+{
+	(void)notification;
+	_dirty = YES;
+	[self highlight];
+	[self fn_announce];
 }
 
 - (void)setLayoutDeferred:(BOOL)deferred

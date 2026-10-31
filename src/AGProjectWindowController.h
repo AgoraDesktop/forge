@@ -22,13 +22,17 @@
 #import <AppKit/NSView.h>
 #import <AppKit/NSWindowController.h>
 
-@class AGProject, AGProjectFile, AGSourceEditor, AGBuilder, AGProjectInfoView, NSOutlineView, NSTextView,
+@class AGProject, AGProjectFile, AGSourceEditor, AGEditorTabs, AGBuilder, AGProjectInfoView, NSOutlineView, NSTextView,
        NSSegmentedControl, NSMenuItem;
 
 @interface AGProjectWindowController : NSWindowController
 {
 	AGProject *_project;		/* RETAINED */
-	AGSourceEditor *_editor;	/* RETAINED */
+	/* **THE STRIP OWNS THE EDITORS, AND `_editor` IS ONLY THE ONE ON SCREEN.** Every open file keeps its own editor —
+	 * text, selection, scroll, undo — and the tab view is what owns them; the controller's pointer is borrowed, so a
+	 * tab closed by any door cannot leave it holding a released buffer. */
+	AGEditorTabs *_tabs;		/* RETAINED */
+	AGSourceEditor *_editor;	/* BORROWED: the editor the strip is showing */
 	NSTextView *_logView;		/* RETAINED */
 	NSOutlineView *_outline;	/* RETAINED */
 	AGBuilder *_builder;		/* RETAINED */
@@ -49,6 +53,9 @@
 - (NSString *)buildLogText;
 - (NSTextView *)buildLogTextView;
 - (AGSourceEditor *)editor;
+/* THE STRIP ITSELF, FOR THE DOORS A TEST NEEDS: how many files are open, and which one the tab is on. */
+- (AGEditorTabs *)editorTabs;
+- (BOOL)closeTab;
 
 /* TEST DOORS for the detail pane: the switch that chooses between Code and Info, and the metadata pane itself. */
 - (NSSegmentedControl *)detailSwitch;

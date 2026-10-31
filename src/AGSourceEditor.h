@@ -31,6 +31,9 @@
 	NSRulerView *_ruler;		/* RETAINED */
 	NSString *_filePath;		/* RETAINED, or nil for a buffer with no file */
 	BOOL _layoutDeferred;		/* YES while a drag is moving this view's frame */
+	BOOL _dirty;			/* the text has been typed into since it was opened or saved */
+	id _target;			/* NOT RETAINED: told when the text changes, so a tab can re-label itself */
+	SEL _action;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame;
@@ -42,6 +45,18 @@
 /* RE-COLOUR WITHOUT TOUCHING THE TEXT. Called after `-setSource:` and by the text view's delegate when an edit
  * ends; it is safe to call at any time. */
 - (void)highlight;
+
+/* **WHETHER THIS BUFFER HAS TEXT THAT IS NOT ON DISK, AND THE DOOR A SAVE CLEARS.** The editor knows because it is its
+ * text view's delegate: `-textDidChange:` is the one report every edit makes, and `-setSource:` is the one door that
+ * puts a file's own text in. Nothing here decides what an unsaved file MEANS — a tab refuses to close on it, and the
+ * window's ⌘S clears it — which is why this is a flag and not a document model. */
+- (BOOL)isDirty;
+- (void)setDirty:(BOOL)flag;
+
+/* **AND THE ANNOUNCEMENT: "THIS BUFFER CHANGED".** Sent after every edit and after `-setSource:`, so the strip that
+ * holds this editor can re-derive its tab's label (the bullet) and pass the news on to the window. */
+- (void)setTarget:(nullable id)target;
+- (void)setAction:(nullable SEL)action;
 
 /* Put the insertion point on `line` (1-based) and scroll it into view — the door a build diagnostic uses. */
 - (void)goToLine:(NSInteger)line;

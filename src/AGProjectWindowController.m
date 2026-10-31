@@ -317,6 +317,9 @@ static NSError *AGForgeError(NSString *reason)
 - (void)fn_buildInterface;
 - (void)fn_reloadGroups;
 - (void)fn_openFile:(AGProjectFile *)file;
+- (void)editorTabsDidChange:(AGEditorTabs *)tabs;
+- (void)closeTab:(id)sender;
+- (BOOL)closeTab;
 - (void)fn_log:(NSString *)text;
 - (void)fn_clearLog;
 - (NSString *)fn_windowTitle;
@@ -401,13 +404,13 @@ static NSError *AGForgeError(NSString *reason)
 - (void)dealloc
 {
 	[_infoView release];
+	[_tabs release];
 	[_logPane release];
 	[_detail release];
 	[_detailSwitch release];
 	[_builder release];
 	[_groups release];
 	[_outline release];
-	[_editor release];
 	[_logView release];
 	[_project release];
 	[super dealloc];
@@ -421,6 +424,47 @@ static NSError *AGForgeError(NSString *reason)
 - (AGSourceEditor *)editor
 {
 	return _editor;
+}
+
+- (AGEditorTabs *)editorTabs
+{
+	return _tabs;
+}
+
+/* **THE ONE ANNOUNCEMENT THE STRIP MAKES.** A tab was selected, added or closed — so the file on screen is a different
+ * one, and everything that NAMES it follows: the borrowed editor pointer, the window's title, and the keyboard's owner.
+ * The strip never guesses at any of those, which is why this is the only place they are derived. */
+- (void)editorTabsDidChange:(AGEditorTabs *)tabs
+{
+	NSString *path = [tabs currentPath];
+
+	_editor = [tabs currentEditor];
+	[[self window] setTitle:[self fn_windowTitle]];
+	(void)path;
+}
+
+/* **AND CLOSING A TAB IS A REFUSAL WHILE IT HAS UNSAVED TEXT**, which is the strip's rule and the log's sentence: a
+ * silent discard is the one outcome a person cannot undo, and this Forge has no save prompt to offer instead. */
+- (BOOL)closeTab
+{
+	if ([_tabs tabCount] == 0) {
+		[self fn_log:@"# There is no file open to close.\n"];
+		return NO;
+	}
+	if (![_tabs closeCurrentTab]) {
+		NSString *name = [[_editor filePath] lastPathComponent];
+
+		[self fn_log:[NSString stringWithFormat:@"# %@ has unsaved changes — press \u2318S to save it before closing.\n",
+				(name != nil ? name : @"This file")]];
+		return NO;
+	}
+	return YES;
+}
+
+- (void)closeTab:(id)sender
+{
+	(void)sender;
+	[self closeTab];
 }
 
 - (NSView *)panesView
@@ -472,6 +516,17 @@ static NSError *AGForgeError(NSString *reason)
 	 * `@"%@ — %@"` arrived as `Hello â( …` — but the fault was `libagora-base`'s format scanner emitting one byte per
 	 * literal chunk, which split the three-byte character before any glyph was looked up. That is fixed
 	 * (`tests/constant_string_units.m`), so this is the typography the title should always have had. */
+	/* **AND THE FILE ON SCREEN IS PART OF THE TITLE**, because a window with a tab strip has more than one file in it and
+	 * the title is what says which one is in front. It is derived from the strip, so selecting a tab re-derives it and no
+	 * door has to remember to. */
+	{
+		NSString *path = [_tabs currentPath];
+
+		if (path != nil && [path length] > 0) {
+			return [NSString stringWithFormat:@"%@ — %@ — %@", [_project name], [path lastPathComponent],
+							  [_project typeName]];
+		}
+	}
 	return [NSString stringWithFormat:@"%@ — %@", [_project name], [_project typeName]];
 }
 
@@ -532,9 +587,13 @@ static NSError *AGForgeError(NSString *reason)
 	_outline = [outline retain];
 	[outline release];
 
-	/* THE EDITOR, and the log under it. */
-	_editor = [[AGSourceEditor alloc] initWithFrame:NSMakeRect(0.0, 0.0, content.size.width - halfWidth,
-								   content.size.height - logHeight)];
+	/* **THE EDITOR'S REGION IS THE TAB STRIP'S NOW, AND EACH FILE KEEPS ITS OWN EDITOR BEHIND IT.** The strip is what the
+	 * detail pane holds; `_editor` follows whichever tab is selected, so every door that acts on "the file on screen" is
+	 * unchanged — it is still one editor, just not always the same one. */
+	_tabs = [[AGEditorTabs alloc] initWithFrame:NSMakeRect(0.0, 0.0, content.size.width - halfWidth,
+							      content.size.height - logHeight)];
+	[_tabs setTarget:self];
+	[_tabs setAction:@selector(editorTabsDidChange:)];
 	/* **AND THE METADATA PANE IN THE SAME REGION.** Both are the size of the detail container; the switch chooses
 	 * which is visible, and neither is thrown away when the other is shown. */
 	_infoView = [[AGProjectInfoView alloc] initWithFrame:NSMakeRect(0.0, 0.0, content.size.width - halfWidth,
@@ -544,9 +603,9 @@ static NSError *AGForgeError(NSString *reason)
 	[_infoView setHidden:YES];
 	_detail = [[AGDetailView alloc] initWithFrame:NSMakeRect(0.0, 0.0, content.size.width - halfWidth,
 								content.size.height - logHeight)];
-	((AGDetailView *)_detail)->_editor = _editor;
+	((AGDetailView *)_detail)->_editor = _tabs;
 	((AGDetailView *)_detail)->_info = _infoView;
-	[_detail addSubview:_editor];
+	[_detail addSubview:_tabs];
 	[_detail addSubview:_infoView];
 
 	/* **THE SWITCH THAT CHOOSES BETWEEN THEM IS A TOOLBAR ITEM WITH A VIEW.** A segmented control is the control a
@@ -899,30 +958,24 @@ static NSError *AGForgeError(NSString *reason)
 - (void)fn_openFile:(AGProjectFile *)file
 {
 	NSString *path = [_project absolutePathForFile:file];
-	NSString *source = [NSString stringWithContentsOfFile:path
-						     encoding:NSUTF8StringEncoding
-							error:NULL];
+	AGSourceEditor *editor;
 
-	if (source == nil) {
-		source = [NSString stringWithContentsOfFile:path
-					           encoding:NSISOLatin1StringEncoding
-						      error:NULL];
-	}
-	if (source == nil) {
+	/* **THE STRIP DECIDES WHAT "OPEN" MEANS.** A file that is already in a tab is SELECTED rather than re-read — the text
+	 * a person has been editing is in that tab — and a file that is not gets its own editor. This door is only the
+	 * browser's click: it names the path and lets the strip answer. */
+	editor = [_tabs openPath:path];
+	if (editor == nil) {
 		[self fn_log:[NSString stringWithFormat:@"error: %@ could not be read\n", path]];
 		return;
 	}
+	_editor = editor;
 	if (getenv("FORGE_LAYOUT_DIAG") != NULL) {
-		fprintf(stderr, "forge: opened %s (%lu bytes)\n", [path UTF8String], (unsigned long)[source length]);
+		fprintf(stderr, "forge: opened %s (%lu bytes, %lu tab(s))\n", [path UTF8String],
+			(unsigned long)[[editor source] length], (unsigned long)[_tabs tabCount]);
 	}
-	[_editor setSource:source];
-	[_editor setFilePath:path];
-	/* **THE TYPOGRAPHIC SEPARATOR IS BACK, BECAUSE THE BUG WAS NEVER THE RASTER'S.** A format string's literal chunk used
-	 * to be handed to the sink ONE BYTE at a time, so `—` (E2 80 94) arrived as three units and drew as `â` and two
-	 * boxes. `libagora-base/NSString.m`'s format scanner emits whole UTF-8 sequences now, and this title is the case that
-	 * found it: `Hello — main.m — application`. */
-	[[self window] setTitle:[NSString stringWithFormat:@"%@ — %@ — %@",
-		[_project name], [file displayName], [_project typeName]]];
+	/* **THE TITLE IS DERIVED, NOT SET HERE** — `-fn_windowTitle` reads the strip's current file, and the strip has just
+	 * announced the change. The keyboard, though, is this door's to move: a click in the browser is a request to type in
+	 * the file it opened. */
 	[[self window] makeFirstResponder:[_editor textView]];
 }
 
@@ -1120,7 +1173,11 @@ static NSError *AGForgeError(NSString *reason)
 		}
 		if (![[_editor source] writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:NULL]) {
 			[self fn_log:[NSString stringWithFormat:@"error: %@ could not be written\n", path]];
+			return;
 		}
+		/* **AND THE TAB'S BULLET GOES WITH THE EDIT THAT PUT IT THERE.** A file that has just been written is not
+		 * unsaved, and the strip re-derives its label from this flag. */
+		[_editor setDirty:NO];
 	}
 }
 
@@ -1186,7 +1243,7 @@ static NSError *AGForgeError(NSString *reason)
 	NSInteger segment = (sender != nil) ? [(NSSegmentedControl *)sender selectedSegment] : 0;
 
 	(void)sender;
-	[_editor setHidden:(segment != 0)];
+	[_tabs setHidden:(segment != 0)];
 	[_infoView setHidden:(segment == 0)];
 	/* **THE PANE THAT JUST CAME UP HAS NEVER BEEN LAID OUT.** Both children are created with a frame computed from the
 	 * content size at build time, and `AGDetailView -fn_placePanes` only places the visible one — so the metadata pane kept
@@ -1506,8 +1563,7 @@ static NSError *AGForgeError(NSString *reason)
 		/* **AND A FILE THAT WAS OPEN GOES WITH IT.** The editor was showing a file the project no longer carries; leaving
 		 * its text on screen under a title naming it would be a window claiming something the manifest denies. */
 		if ([[_editor filePath] isEqualToString:absolute]) {
-			[_editor setSource:@""];
-			[_editor setFilePath:nil];
+			[_tabs closePath:absolute];
 			[[self window] setTitle:[self fn_windowTitle]];
 		}
 		[absolute release];

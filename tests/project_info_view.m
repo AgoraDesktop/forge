@@ -247,12 +247,17 @@ int main(void)
 			check([detailSwitch frame].size.width < 120.0,
 			      "and the control is the width of its pictures, not of two empty label columns");
 			check([detailSwitch selectedSegment] == 0, "with the editor showing to begin with");
-			check(![[projectWindow editor] isHidden], "the editor is visible");
+			/* **THE EDITOR'S PANE IS THE TAB STRIP NOW, so a check that asks the EDITOR whether it is hidden is asking
+			 * the wrong view: the switch hides the strip its editor sits in, and the editor's own flag stays NO. The
+			 * question "is it on the screen?" is `-hiddenOrHasHiddenAncestor`, which is true either way. */
+			check(![[projectWindow editorTabs] isHidden] &&
+			      ![[projectWindow editor] hiddenOrHasHiddenAncestor], "the editor is visible");
 			check([[projectWindow infoView] isHidden], "and the metadata pane is not");
 
 			[projectWindow showProjectInfo:nil];
 			check([detailSwitch selectedSegment] == 1, "Project Info… moves the switch to Info");
-			check([[projectWindow editor] isHidden], "the editor stands aside");
+			check([[projectWindow editorTabs] isHidden] &&
+			      [[projectWindow editor] hiddenOrHasHiddenAncestor], "the editor stands aside");
 			check(![[projectWindow infoView] isHidden], "and the metadata pane is up");
 
 			/* **AND IT FILLS THE PANE IT CAME UP IN.** Both children are built with a frame taken from the content size
@@ -273,7 +278,8 @@ int main(void)
 
 			[detailSwitch setSelectedSegment:0];
 			[(id)projectWindow performSelector:@selector(detailSegmentChanged:) withObject:detailSwitch];
-			check(![[projectWindow editor] isHidden], "and switching back shows the editor again");
+			check(![[projectWindow editorTabs] isHidden] &&
+			      ![[projectWindow editor] hiddenOrHasHiddenAncestor], "and switching back shows the editor again");
 			check([[projectWindow infoView] isHidden], "with the metadata pane put away");
 			[projectWindow release];
 		}
