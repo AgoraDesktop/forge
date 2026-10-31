@@ -216,8 +216,29 @@ if(BUILD_TESTING)
   target_link_libraries(forge_line_numbers PRIVATE AgoraApp::App)
   add_test(NAME forge-line-numbers COMMAND forge_line_numbers)
 
+  # **THE COLOUR PASS: WHICH RUNS IT INKS, AND WHAT ONE PASS COSTS.** The keyword test was rewritten from a set of strings
+  # to a C table for speed — this pins the four inks it produces and measures the pass, so the trade is a number.
+  add_executable(forge_highlight
+      tests/highlight.m
+      src/AGSourceEditor.m)
+  target_include_directories(forge_highlight PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  target_link_libraries(forge_highlight PRIVATE AgoraApp::App)
+  add_test(NAME forge-highlight COMMAND forge_highlight)
+
   # **A TAB PER OPEN FILE, AND THE TWO RULES ABOUT CLOSING ONE.** Offscreen: the strip is an `NSTabView` and an editor is
   # a scroll view over a text view, so "what is on screen" is a question about views rather than about a compositor.
+
+  # **A PROBE, NOT A TEST: where the time goes when a file is opened.** The doors a person waits on are measured here —
+  # the layout, the colour pass and the store — so a change to any of them is a number rather than a hope. It is built and
+  # run by hand (there is no `add_test`), which is what `_drag_cost` does for the panes.
+  add_executable(forge_open_cost
+      tests/_open_cost.m
+      src/AGEditorTabs.m
+      src/AGTabStrip.m
+      src/AGSourceEditor.m)
+  target_include_directories(forge_open_cost PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  target_link_libraries(forge_open_cost PRIVATE AgoraApp::App)
+
   add_executable(forge_tabs
       tests/tabs.m
       src/AGEditorTabs.m
