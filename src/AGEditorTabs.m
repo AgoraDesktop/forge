@@ -74,6 +74,23 @@ static NSString *fn_label_for_editor(AGSourceEditor *editor)
 	_action = action;
 }
 
+/* **THE PANE PAINTS ITS OWN FACE, WHICH IS WHAT AN EMPTY ONE SHOWS.** With no file open there is no editor to fill the
+ * content area, and a view that draws nothing leaves whatever was there before it — MEASURED, the last file's text stayed
+ * on the glass when its tab was closed, and a repaint that arrives in pieces smeared it. A pane of `+windowBackgroundColor`
+ * under the editor is the same colour the editor's own face is, so the ordinary case looks unchanged and the empty case
+ * looks like an empty pane. */
+- (void)drawRect:(NSRect)dirtyRect
+{
+	(void)dirtyRect;
+	[[NSColor windowBackgroundColor] setFill];
+	NSRectFill([self bounds]);
+}
+
+- (BOOL)isOpaque
+{
+	return YES;
+}
+
 /* ---- THE GEOMETRY -------------------------------------------------------------------------------- */
 
 /* **THE STRIP IS THE TOP OF THE PANE AND THE EDITORS GET THE REST.** The pane's own frame is what the split view sets, so
@@ -312,6 +329,10 @@ static NSString *fn_label_for_editor(AGSourceEditor *editor)
 		[self fn_showEditorAtIndex:next];
 	} else {
 		[self fn_refreshStrip];
+		/* **AND THE PANE IS PAINTED AGAIN WHEN THE LAST FILE GOES.** The removal damages the editor's own frame, but the
+		 * piece that sits UNDER it is this view's face — and an empty pane that is never repainted keeps the last
+		 * buffer's pixels. */
+		[self setNeedsDisplay:YES];
 		[self fn_announce];
 	}
 	return YES;

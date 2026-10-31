@@ -183,6 +183,15 @@ static NSDictionary *fn_tab_attributes(BOOL selected)
 	if (index >= [_titles count]) {
 		return;
 	}
+	/* **A STRIP WITH NO WIDTH REVEALS NOTHING, AND MUST NOT SCROLL ITSELF AWAY.** A tab opened before the pane has been
+	 * laid out is revealed into a strip zero points wide — and "bring the chip's right edge to the strip's right edge"
+	 * then means "scroll the whole strip off to the left", which is a band of nothing where the tabs should be: MEASURED,
+	 * the strip came up empty on the first file opened. A zero-width strip leaves the offset at the start and the first
+	 * real layout takes it from there. */
+	if (visible <= 0.0) {
+		_offset = 0.0;
+		return;
+	}
 	[self fn_clampOffset];
 	chip = [self rectForTabAtIndex:index];
 	if (NSMinX(chip) < 0.0) {

@@ -21,6 +21,46 @@
 
 static int s_failed = 0;
 
+/* **PAINT A VIEW INTO A BITMAP AND COUNT ITS INK IN A RECTANGLE.** The bitmap is kept between paints on purpose: a window
+ * reuses its buffer, so the question "did the pane's face cover what was there?" is only asked honestly by painting a
+ * SECOND time into the same pixels.
+ */
+static NSBitmapImageRep *painted_rep(NSView *view)
+{
+	NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
+		pixelsWide:(int)[view bounds].size.width pixelsHigh:(int)[view bounds].size.height
+		bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES isPlanar:NO
+		colorSpaceName:NSCalibratedRGBColorSpace bytesPerRow:(int)[view bounds].size.width * 4 bitsPerPixel:32];
+
+	return rep;
+}
+
+static void paint_into(NSBitmapImageRep *rep, NSView *view)
+{
+	NSGraphicsContext *context = [NSGraphicsContext graphicsContextWithBitmapImageRep:rep];
+
+	[NSGraphicsContext saveGraphicsState];
+	[NSGraphicsContext setCurrentContext:context];
+	[view displayRect:[view bounds]];
+	[NSGraphicsContext restoreGraphicsState];
+}
+
+static int ink_in_rep(NSBitmapImageRep *rep, NSRect rect, int viewHeight)
+{
+	int x, y, ink = 0;
+
+	for (y = (int)NSMinY(rect); y < (int)NSMaxY(rect); y++) {
+		for (x = (int)NSMinX(rect); x < (int)NSMaxX(rect); x++) {
+			NSColor *c = [rep colorAtX:x y:viewHeight - 1 - y];
+
+			if (c != nil && [c redComponent] < 0.5) {
+				ink++;
+			}
+		}
+	}
+	return ink;
+}
+
 /* A WHEEL EVENT, built the way the seam builds one: `NSEvent`'s own two numbers, in WHEEL LINES. */
 static NSEvent *scroll_event(double dx, double dy)
 {
@@ -289,6 +329,53 @@ int main(void)
 			(void)[probe openPath:alpha];	/* already open: this SELECTS it */
 			check(NSMinX([strip rectForTabAtIndex:0]) >= -0.5,
 			      "selecting the first tab scrolls it back into view");
+			[probe release];
+		}
+
+		/* 6f. **A TAB OPENED BEFORE THE PANE IS LAID OUT IS STILL VISIBLE.** The strip is built at zero size and the first
+		 * file is opened before any layout, so "reveal the selected chip" has to know that a strip with no width reveals
+		 * nothing: MEASURED, the first open scrolled the whole strip off to the left (offset = the chip's right edge)
+		 * and the pane came up with a band of nothing where its tabs should be. */
+		{
+			AGEditorTabs *probe = [[AGEditorTabs alloc] initWithFrame:NSMakeRect(0.0, 0.0, 0.0, 0.0)];
+			AGTabStrip *strip;
+
+			(void)[probe openPath:alpha];
+			strip = [probe tabStrip];
+			check([strip bounds].size.width == 0.0, "the strip has no width yet");
+			check([strip tabCount] == 1, "a file opened into it regardless");
+			check([strip scrollOffset] == 0.0,
+			      "and the strip did NOT scroll itself away revealing a chip into no room");
+			/* and once the pane is laid out, the chip is where it should be */
+			[probe setFrame:NSMakeRect(0.0, 0.0, 600.0, 300.0)];
+			check(NSMinX([strip rectForTabAtIndex:0]) >= 0.0 &&
+			      NSMaxX([strip rectForTabAtIndex:0]) <= 600.0,
+			      "so the first chip is on the strip after a real layout");
+			[probe release];
+		}
+
+		/* 6g. **AN EMPTY PANE PAINTS ITS FACE, NOT THE LAST FILE'S TEXT.** Closing the last tab leaves a view with no
+		 * editor in it, and a pane that draws NOTHING keeps whatever the buffer held — MEASURED as the last file's text
+		 * staying on the glass, smeared by the next partial repaint. The pane fills itself with the window's background,
+		 * so the ink the editor left behind is gone the moment its tab is. */
+		{
+			AGEditorTabs *probe = [[AGEditorTabs alloc] initWithFrame:NSMakeRect(0.0, 0.0, 300.0, 200.0)];
+			NSRect content = NSMakeRect(0.0, 0.0, 300.0, 200.0 - [AGTabStrip thickness]);
+			NSBitmapImageRep *rep = painted_rep(probe);
+			int before, after;
+
+			(void)[probe openPath:alpha];
+			paint_into(rep, probe);
+			before = ink_in_rep(rep, content, 200);
+			check(before > 0, "an open file inks the pane");
+			check([probe closeTabAtIndex:0], "and its tab closes");
+			check([probe tabCount] == 0, "leaving no tabs at all");
+			/* THE SAME PIXELS, PAINTED AGAIN — a window reuses its buffer, so this is the state a person sees. */
+			paint_into(rep, probe);
+			after = ink_in_rep(rep, content, 200);
+			printf("  [diag] pane ink before %d, after the last tab closed %d\n", before, after);
+			check(after == 0, "and the pane is its own face again, not the text that was there");
+			[rep release];
 			[probe release];
 		}
 
