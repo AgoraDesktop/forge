@@ -24,6 +24,9 @@
 {
 	NSMutableArray *_titles;	/* RETAINED: NSString, one per tab */
 	NSInteger _selected;
+	NSInteger _hoverClose;		/* the tab whose close glyph the pointer is over, or -1 */
+	NSTrackingArea *_hoverArea;	/* RETAINED, or nil before the strip is in a window */
+	CGFloat _offset;		/* how far the chips are scrolled to the left, in points */
 	id _target;			/* NOT RETAINED */
 	SEL _selectAction;		/* sent with an NSNumber index */
 	SEL _closeAction;		/* sent with an NSNumber index */
@@ -43,6 +46,23 @@
 
 /* **THE TWO CLICKS, AS TARGET/ACTION PAIRS**, each handed an `NSNumber` index: a press on a chip selects its tab, a
  * press on the glyph asks for it to be closed. Asking is not closing — the caller may refuse, and does. */
+/* **THE CHIPS SCROLL WHEN THEY DO NOT FIT.** The strip is as wide as the pane; a project with more files open than fit
+ * keeps them all, and the wheel (or a trackpad's sideways swipe) walks along them. There is no visible scroller: a tab
+ * strip with a scrollbar under it is a table of contents, and the strip's own job is to keep the SELECTED tab in view —
+ * which is what `-revealTabAtIndex:` does on every selection, so a tab opened off the right edge is brought into view
+ * rather than left to be found. */
+- (CGFloat)contentWidth;
+- (CGFloat)scrollOffset;
+- (void)revealTabAtIndex:(NSUInteger)index;
+
+/* **AND THE HOVER, WHICH IS THE GLYPH'S OWN.** The close glyph is a target the size of a word's first letter, so the one
+ * under the pointer says so by wearing a plate behind it — a button nobody can see they are over is a button people miss. */
+- (NSInteger)hoveredCloseIndex;
+
+/* **THE POINT THE HOVER CALLBACKS ARE GIVEN, IN THIS VIEW'S COORDINATES** — what the tracking area's `-mouseMoved:` and a
+ * probe both hand over. A point outside every glyph clears the hover. */
+- (void)hoverAtPoint:(NSPoint)point;
+
 - (void)setTarget:(nullable id)target;
 - (void)setSelectAction:(nullable SEL)action;
 - (void)setCloseAction:(nullable SEL)action;

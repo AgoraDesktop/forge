@@ -21,6 +21,17 @@
 
 static int s_failed = 0;
 
+/* A WHEEL EVENT, built the way the seam builds one: `NSEvent`'s own two numbers, in WHEEL LINES. */
+static NSEvent *scroll_event(double dx, double dy)
+{
+	return [NSEvent cg_scrollEventWithDeltaX:(CGFloat)dx
+					  deltaY:(CGFloat)dy
+					location:NSMakePoint(10.0, 10.0)
+				   modifierFlags:0
+				       timestamp:1.0
+				    windowNumber:0];
+}
+
 static void check(int ok, const char *what)
 {
 	printf("  %s   %s\n", ok ? "ok  " : "FAIL", what);
@@ -207,6 +218,77 @@ int main(void)
 				check(abs(fromFloor - fromCeiling) <= 3, "and the words are CENTRED in the chip");
 			}
 			[rep release];
+			[probe release];
+		}
+
+		/* 6d. **THE CLOSE GLYPH UNDER THE POINTER WEARS A PLATE.** It is a twelve-point target, so the one a press would
+		 * hit says so before the press: the hover is asked per motion and costs a redraw only when the ANSWER changes. */
+		{
+			AGEditorTabs *probe = [[AGEditorTabs alloc] initWithFrame:NSMakeRect(0.0, 0.0, 600.0, 300.0)];
+			AGTabStrip *strip;
+
+			(void)[probe openPath:alpha];
+			(void)[probe openPath:beta];
+			strip = [probe tabStrip];
+			check([strip hoveredCloseIndex] == -1, "nothing is hovered to begin with");
+			[strip hoverAtPoint:NSMakePoint(NSMidX([strip closeRectForTabAtIndex:1]),
+							NSMidY([strip closeRectForTabAtIndex:1]))];
+			check([strip hoveredCloseIndex] == 1, "the pointer over a glyph hovers THAT tab's");
+			[strip hoverAtPoint:NSMakePoint(NSMidX([strip rectForTabAtIndex:1]),
+							NSMidY([strip rectForTabAtIndex:1]))];
+			check([strip hoveredCloseIndex] == -1,
+			      "and the middle of the chip — the name — hovers no glyph");
+			[strip hoverAtPoint:NSMakePoint(NSMidX([strip closeRectForTabAtIndex:1]),
+							NSMidY([strip closeRectForTabAtIndex:1]))];
+			[strip mouseExited:nil];
+			check([strip hoveredCloseIndex] == -1, "a pointer that leaves the strip drops the hover");
+			[probe release];
+		}
+
+		/* 6e. **AND THE CHIPS SCROLL WHEN THEY DO NOT FIT.** The strip is as wide as the pane and a project can have more
+		 * files open than that holds: the wheel walks along them, the offset never passes either end, and selecting a tab
+		 * brings it into view — which is the promise that makes a tab you cannot see still reachable. */
+		{
+			AGEditorTabs *probe = [[AGEditorTabs alloc] initWithFrame:NSMakeRect(0.0, 0.0, 100.0, 300.0)];
+			AGTabStrip *strip;
+			NSEvent *wheel;
+			CGFloat width;
+
+			(void)[probe openPath:alpha];
+			(void)[probe openPath:beta];
+			(void)[probe openPath:alpha];	/* the strip keeps two: the second open of alpha SELECTS */
+			strip = [probe tabStrip];
+			width = [strip bounds].size.width;
+			check([strip contentWidth] > width, "two chips are wider than a 100-point strip");
+			check([strip scrollOffset] == 0.0, "which starts unscrolled");
+			check(NSMaxX([strip rectForTabAtIndex:1]) > width,
+			      "so the second chip ends past the strip's right edge");
+
+			/* THE WHEEL, AND ITS TWO ENDS. */
+			wheel = scroll_event(0.0, -3.0);
+			[strip scrollWheel:wheel];
+			check([strip scrollOffset] > 0.0, "a wheel walks the chips along");
+			{
+				CGFloat scrolled = [strip scrollOffset];
+
+				check(NSMaxX([strip rectForTabAtIndex:1]) <= width + 0.5,
+				      "and the last chip comes fully into view");
+
+				/* past the end the offset STOPS, and the event goes on to the view behind the strip. */
+				[strip scrollWheel:scroll_event(0.0, -40.0)];
+				check([strip scrollOffset] >= scrolled, "a second wheel past the end does not run away");
+				check(NSMaxX([strip rectForTabAtIndex:1]) <= width + 0.5, "and the chips stay where they are");
+				[strip scrollWheel:scroll_event(0.0, 40.0)];
+				check([strip scrollOffset] == 0.0, "wheeling back returns them to the first chip");
+			}
+
+			/* **AND A SELECTION BRINGS ITS CHIP INTO VIEW**, which is the promise that makes a tab scrolled off the left
+			 * edge reachable by clicking its name in the browser. */
+			[strip scrollWheel:scroll_event(0.0, -40.0)];
+			check([strip scrollOffset] > 0.0, "the chips are scrolled past the first one");
+			(void)[probe openPath:alpha];	/* already open: this SELECTS it */
+			check(NSMinX([strip rectForTabAtIndex:0]) >= -0.5,
+			      "selecting the first tab scrolls it back into view");
 			[probe release];
 		}
 

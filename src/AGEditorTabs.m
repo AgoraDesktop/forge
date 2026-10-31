@@ -201,6 +201,10 @@ static NSString *fn_label_for_editor(AGSourceEditor *editor)
 	}
 	_current = index;
 	[self fn_refreshStrip];
+	/* **AND THE SELECTED CHIP IS BROUGHT INTO VIEW.** A file opened from the browser — or jumped to from a build
+	 * diagnostic — can be a tab past the strip's right edge, and a strip that changes which file is in front without
+	 * showing where it went is worse than one that cannot scroll at all. */
+	[_strip revealTabAtIndex:(NSUInteger)index];
 	[self fn_announce];
 }
 

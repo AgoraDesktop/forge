@@ -12,6 +12,7 @@
 #import <AppKit/NSEvent.h>
 #import <AppKit/NSFont.h>
 #import <AppKit/NSGraphics.h>
+#import <AppKit/NSTrackingArea.h>
 #import <AppKit/NSStringDrawing.h>
 
 #import <Foundation/NSArray.h>
@@ -27,6 +28,10 @@ static const CGFloat AGTabPadRight = 10.0;
 static const CGFloat AGTabCloseSize = 12.0;
 static const CGFloat AGTabCloseGap = 4.0;
 static const CGFloat AGTabCornerRadius = 4.0;
+/* **ONE WHEEL LINE'S WORTH OF STRIP, IN POINTS.** `-deltaY` counts lines (a notch is 1.0, a trackpad's fraction of a
+ * notch is a fraction), so this is what one line moves the chips: a little less than a short chip, so a swipe walks
+ * along the strip instead of jumping a whole file per notch. */
+static const CGFloat AGTabScrollLine = 20.0;
 
 static NSFont *fn_tab_font(void)
 {
@@ -69,6 +74,12 @@ static NSDictionary *fn_tab_attributes(BOOL selected)
 	_target = target;	/* NOT RETAINED */
 }
 
+- (void)setFrameSize:(NSSize)size
+{
+	[super setFrameSize:size];
+	[self fn_clampOffset];
+}
+
 - (void)setSelectAction:(SEL)action
 {
 	_selectAction = action;
@@ -87,6 +98,10 @@ static NSDictionary *fn_tab_attributes(BOOL selected)
 	_titles = [copy mutableCopy];
 	[copy release];
 	_selected = index;
+	if (_hoverClose >= (NSInteger)[_titles count]) {
+		_hoverClose = -1;
+	}
+	[self fn_clampOffset];
 	[self setNeedsDisplay:YES];
 }
 
@@ -115,13 +130,68 @@ static NSDictionary *fn_tab_attributes(BOOL selected)
 
 - (NSRect)rectForTabAtIndex:(NSUInteger)index
 {
-	CGFloat x = 0.0;
+	CGFloat x = -_offset;
 	NSUInteger i;
 
 	for (i = 0; i < index && i < [_titles count]; i++) {
 		x += [self fn_widthForTitleAtIndex:i];
 	}
 	return NSMakeRect(x, 0.0, [self fn_widthForTitleAtIndex:index], [self bounds].size.height - 1.0);
+}
+
+- (CGFloat)contentWidth
+{
+	CGFloat width = 0.0;
+	NSUInteger i;
+
+	for (i = 0; i < [_titles count]; i++) {
+		width += [self fn_widthForTitleAtIndex:i];
+	}
+	return width;
+}
+
+- (CGFloat)scrollOffset
+{
+	return _offset;
+}
+
+/* **THE OFFSET NEVER GOES PAST EITHER END**, which is the one clamp: a strip narrower than its chips cannot scroll, and
+ * one scrolled past the last chip would show a blank band with no way back except the wheel. */
+- (void)fn_clampOffset
+{
+	CGFloat excess = [self contentWidth] - [self bounds].size.width;
+
+	if (excess < 0.0) {
+		excess = 0.0;
+	}
+	if (_offset > excess) {
+		_offset = excess;
+	}
+	if (_offset < 0.0) {
+		_offset = 0.0;
+	}
+}
+
+/* **AND THE SELECTED CHIP IS ALWAYS ON SCREEN.** A tab selected by a click is already visible, but one selected by an
+ * OPEN (a file chosen in the browser, a build diagnostic jumping to a line) may be off the right edge — and a strip that
+ * silently changes which file is in front without showing where it went is worse than one that cannot scroll. */
+- (void)revealTabAtIndex:(NSUInteger)index
+{
+	NSRect chip;
+	CGFloat visible = [self bounds].size.width;
+
+	if (index >= [_titles count]) {
+		return;
+	}
+	[self fn_clampOffset];
+	chip = [self rectForTabAtIndex:index];
+	if (NSMinX(chip) < 0.0) {
+		_offset += NSMinX(chip);
+	} else if (NSMaxX(chip) > visible) {
+		_offset += NSMaxX(chip) - visible;
+	}
+	[self fn_clampOffset];
+	[self setNeedsDisplay:YES];
 }
 
 - (NSRect)closeRectForTabAtIndex:(NSUInteger)index
@@ -192,6 +262,16 @@ static NSDictionary *fn_tab_attributes(BOOL selected)
 		CGFloat arm = 3.0;
 		NSBezierPath *cross = [NSBezierPath bezierPath];
 
+		/* **THE ONE UNDER THE POINTER WEARS A PLATE**, which is how a twelve-point target says "press me": the same
+		 * prelight a push button has, in the same colour, so the two kinds of button on this desktop agree. It is
+		 * drawn BEFORE the strokes so the cross stays crisp over it. */
+		if (_hoverClose == i) {
+			NSBezierPath *plate = [NSBezierPath bezierPathWithRoundedRect:NSInsetRect(glyph, -2.0, -2.0)
+									      xRadius:3.0 yRadius:3.0];
+
+			[[NSColor cg_prelightControlFaceColor] setFill];
+			[plate fill];
+		}
 		/* THE GLYPH IS TWO STROKES, WHICH IS ALL A CLOSE BUTTON IS AT TWELVE POINTS.** A tabler `x` would be a
 		 * 24-point tile scaled down to six; two lines at this size are both crisper and the right weight beside
 		 * eleven-point words. */
@@ -200,7 +280,12 @@ static NSDictionary *fn_tab_attributes(BOOL selected)
 		[cross moveToPoint:NSMakePoint(centre.x - arm, centre.y + arm)];
 		[cross lineToPoint:NSMakePoint(centre.x + arm, centre.y - arm)];
 		[cross setLineWidth:1.5];
-		[(i == _selected ? [NSColor controlTextColor] : [NSColor disabledControlTextColor]) setStroke];
+		{
+			NSColor *ink = (i == _selected || _hoverClose == i) ? [NSColor controlTextColor]
+									   : [NSColor disabledControlTextColor];
+
+			[ink setStroke];
+		}
 		[cross stroke];
 
 		/* **AND THE WORDS, CENTRED IN WHAT IS LEFT OF THE CHIP.** `-drawAtPoint:` takes a BASELINE, so the box to centre
@@ -216,6 +301,95 @@ static NSDictionary *fn_tab_attributes(BOOL selected)
 
 /* **THE GLYPH IS TESTED FIRST, BECAUSE IT SITS INSIDE THE CHIP.** A chip that answered "select" for a press on its own
  * close button would make the button useless, and ordering the two tests is the whole of that rule. */
+/* ---- THE POINTER'S TWO REPORTS ------------------------------------------------------------------- */
+
+/* **THE AREA IS THE VIEW'S OWN VISIBLE RECTANGLE**, the same shape the toolbar's prelight uses: a strip that is resized by
+ * a split view needs no pass to keep its region in step, and motion leaving the strip altogether arrives as an exit. */
+- (void)viewDidMoveToWindow
+{
+	[super viewDidMoveToWindow];
+	if ([self window] == nil) {
+		return;
+	}
+	if (_hoverArea == nil) {
+		_hoverArea = [[NSTrackingArea alloc] initWithRect:NSZeroRect
+							  options:(NSTrackingMouseEnteredAndExited |
+								   NSTrackingMouseMoved |
+								   NSTrackingActiveInActiveApp |
+								   NSTrackingInVisibleRect)
+							    owner:self userInfo:nil];
+	}
+	if ([self trackingAreas] == nil || ![[self trackingAreas] containsObject:_hoverArea]) {
+		[self addTrackingArea:_hoverArea];
+	}
+}
+
+- (NSInteger)hoveredCloseIndex
+{
+	return _hoverClose;
+}
+
+/* **ONE QUESTION PER MOTION: WHICH GLYPH IS UNDER THE POINTER?** The plate costs a redraw, so it is only asked for when the
+ * ANSWER changes — a motion inside one glyph is not a reason to repaint the strip. */
+- (void)hoverAtPoint:(NSPoint)point
+{
+	NSInteger i, count = (NSInteger)[_titles count];
+	NSInteger hover = -1;
+
+	for (i = 0; i < count; i++) {
+		if (NSPointInRect(point, [self closeRectForTabAtIndex:(NSUInteger)i])) {
+			hover = i;
+			break;
+		}
+	}
+	if (hover != _hoverClose) {
+		_hoverClose = hover;
+		[self setNeedsDisplay:YES];
+	}
+}
+
+- (void)mouseMoved:(NSEvent *)event
+{
+	[self hoverAtPoint:[self convertPoint:[event locationInWindow] fromView:nil]];
+}
+
+- (void)mouseEntered:(NSEvent *)event
+{
+	[self mouseMoved:event];
+}
+
+- (void)mouseExited:(NSEvent *)event
+{
+	(void)event;
+	if (_hoverClose != -1) {
+		_hoverClose = -1;
+		[self setNeedsDisplay:YES];
+	}
+	[super mouseExited:event];
+}
+
+/* **THE WHEEL WALKS ALONG THE STRIP.** A tab strip is a HORIZONTAL list, so a trackpad's sideways swipe is the natural
+ * gesture — but a mouse has one wheel, and every Mac application with a horizontal strip (Chrome, Xcode's tab bar) moves
+ * it with the vertical wheel rather than doing nothing. The horizontal delta wins when there is one, so a trackpad does
+ * not have its two axes fight; a wheel past either end is passed up the chain, which is what lets a strip that cannot
+ * scroll leave the scroll to the view behind it. */
+- (void)scrollWheel:(NSEvent *)event
+{
+	CGFloat delta = [event deltaX];
+	CGFloat before = _offset;
+
+	if (delta == 0.0) {
+		delta = [event deltaY];
+	}
+	_offset -= delta * AGTabScrollLine;
+	[self fn_clampOffset];
+	if (_offset == before) {
+		[super scrollWheel:event];
+		return;
+	}
+	[self setNeedsDisplay:YES];
+}
+
 - (void)mouseDown:(NSEvent *)event
 {
 	NSPoint point = [self convertPoint:[event locationInWindow] fromView:nil];
