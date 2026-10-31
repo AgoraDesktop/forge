@@ -339,7 +339,7 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
  * defaults store (or by a second window's press) is never stale. */
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
-	if ([item action] == @selector(toggleToolbarLabels:)) {
+	if (sel_isEqual([item action], @selector(toggleToolbarLabels:))) {
 		[AGProjectWindowController fn_showToolbarLabelsStateOn:item];
 	}
 	return YES;
@@ -404,6 +404,12 @@ static NSMenuItem *AGRow(NSMenu *menu, NSString *title, SEL action, id target, N
 	/* **AND THE TOOLBAR'S WORDS, WHICH ARE A CHECKMARK AND NOT A SECOND KIND OF ROW.** The state is put on the item when the
 	 * menu is opened (`-validateMenuItem:` below), so the tick always describes the preference and not the last time this
 	 * action happened to run. */
+	/* **AND THE BAND ITSELF, WHICH IS THE WINDOW'S DOOR RATHER THAN THE APPLICATION'S.** `-toggleToolbarShown:` is
+	 * `NSWindow`'s — the same action the toolbar's own pill sends and the title bar's double-click ends at — so the row is
+	 * CHAIN-ROUTED (no target) and lands on whichever project window is in front. Its tick is the window's too: the
+	 * window validates the row and sets the state from the band it owns, so an application does not have to remember a
+	 * second copy of "is the toolbar showing". */
+	AGRow(view, @"Show Toolbar", @selector(toggleToolbarShown:), nil, @"t", NSCommandKeyMask | NSAlternateKeyMask);
 	AGRow(view, @"Show Toolbar Labels", @selector(toggleToolbarLabels:), self, nil, 0);
 
 	AGRow(window, @"Minimize", @selector(performMiniaturize:), nil, @"m", NSCommandKeyMask);

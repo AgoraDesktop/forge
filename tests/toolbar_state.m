@@ -176,11 +176,11 @@ int main(void)
 
 				if ([[item itemIdentifier] isEqualToString:@"AGToolbarNewProject"]) {
 					newOK = [[item label] isEqualToString:@"New"] &&
-						[item action] == @selector(newProject:);
+						sel_isEqual([item action], @selector(newProject:));
 				}
 				if ([[item itemIdentifier] isEqualToString:@"AGToolbarOpenProject"]) {
 					openOK = [[item label] isEqualToString:@"Open"] &&
-						[item action] == @selector(openProject:);
+						sel_isEqual([item action], @selector(openProject:));
 				}
 			}
 			check(newOK, "the first row says New and names the application's -newProject:");

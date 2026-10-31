@@ -411,7 +411,7 @@ static const CGFloat AGFooterGap = 22.0;
 	for (i = 0; i < [subviews count]; i++) {
 		id view = [subviews objectAtIndex:i];
 
-		if ([view isKindOfClass:[NSButton class]] && [view action] == @selector(chooseIcon:)) {
+		if ([view isKindOfClass:[NSButton class]] && sel_isEqual([view action], @selector(chooseIcon:))) {
 			return view;
 		}
 	}
@@ -426,7 +426,7 @@ static const CGFloat AGFooterGap = 22.0;
 	for (i = 0; i < [subviews count]; i++) {
 		id view = [subviews objectAtIndex:i];
 
-		if ([view isKindOfClass:[NSButton class]] && [view action] == @selector(revert:)) {
+		if ([view isKindOfClass:[NSButton class]] && sel_isEqual([view action], @selector(revert:))) {
 			return view;
 		}
 	}
