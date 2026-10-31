@@ -44,6 +44,15 @@ static NSColor *ink_at(AGSourceEditor *editor, NSUInteger index)
 							    atCharacterIndex:index effectiveRange:NULL];
 }
 
+/* THE STRING INK, READ OFF THE SAMPLE ITSELF rather than named here, so a change to the palette cannot make one check
+ * agree with itself while the file's ink moved. */
+static NSColor *AGTestStringInk(AGSourceEditor *editor)
+{
+	return [[[editor textView] layoutManager] temporaryAttribute:NSForegroundColorAttributeName
+							    atCharacterIndex:[[editor source] rangeOfString:@"@\"hello\""].location
+							       effectiveRange:NULL];
+}
+
 static int same_colour(NSColor *a, NSColor *b)
 {
 	return a != nil && b != nil && [a isEqual:b];
@@ -53,7 +62,23 @@ int main(void)
 {
 	@autoreleasepool {
 		AGSourceEditor *editor;
-		const char *sample = "int main(void)\n{\n\treturn 0; // done\n}\n";
+		/* **THE SAMPLE IS AN OBJECTIVE-C FILE'S FIRST TWENTY LINES IN MINIATURE**: a preprocessor import with a header
+		 * path, a property with its attribute list, an `@`-string, a class name used as a type, and the four C kinds the
+		 * pass already knew. */
+		const char *sample =
+			"#import <Foundation/Foundation.h>\n"
+			"\n"
+			"@interface AGThing : NSObject\n"
+			"@property (nonatomic, copy) NSString *name;\n"
+			"- (void)setTitle:(NSString *)title;\n"
+			"@end\n"
+			"\n"
+			"int main(void)\n"
+			"{\n"
+			"\tNSView *view = nil;\n"
+			"\tNSString *greeting = @\"hello\";\n"
+			"\treturn 0; // done\n"
+			"}\n";
 		NSString *text = [NSString stringWithUTF8String:sample];
 
 		setvbuf(stdout, NULL, _IOLBF, 0);
@@ -101,7 +126,49 @@ int main(void)
 			check(!same_colour(ink_at(editor, number), keyword), "and neither is the number's");
 		}
 
-		/* 4. **AND IT IS CHEAP ENOUGH TO RUN ON EVERY KEYSTROKE.** The pass is over the whole file, so a document of a
+		/* 4. **THE PREPROCESSOR READS AS PART OF THE FILE.** The `#` and the word after it are keywords — `import` is not
+		 * a keyword of the language and used to be plain — and an import's header path is a NAME, in the string's ink,
+		 * rather than a row of angle brackets and slashes. */
+		{
+			NSUInteger import = [text rangeOfString:@"import"].location;
+			NSUInteger path = [text rangeOfString:@"<Foundation/Foundation.h>"].location;
+			NSUInteger string = [text rangeOfString:@"@\"hello\""].location;
+
+			check(import != NSNotFound && same_colour(ink_at(editor, import), ink_at(editor, 0)),
+			      "a preprocessor directive wears the keyword ink");
+			check(path != NSNotFound && ink_at(editor, path) != nil, "an imported header path is inked");
+			check(path != NSNotFound && same_colour(ink_at(editor, path), AGTestStringInk(editor)),
+			      "and it wears the STRING ink, because a path is a name");
+			(void)string;
+		}
+
+		/* 5. **AND AN OBJECTIVE-C FILE'S OWN SHAPES**: a class name is a TYPE, `@"…"` is one string with its `@`, and a
+		 * property's attribute list is keywords — `nonatomic` and `copy` are keywords in exactly that place and nowhere
+		 * else, so a local called `copy` stays plain. */
+		{
+			NSUInteger type = [text rangeOfString:@"NSString"].location;
+			NSUInteger other = [text rangeOfString:@"NSView"].location;
+			NSUInteger atString = [text rangeOfString:@"@\"hello\""].location;
+			NSUInteger attribute = [text rangeOfString:@"nonatomic"].location;
+			NSUInteger local = [text rangeOfString:@"view"].location;
+			NSColor *typeInk = (type != NSNotFound) ? ink_at(editor, type) : nil;
+
+			check(typeInk != nil, "a class name is inked");
+			check(typeInk != nil && !same_colour(typeInk, ink_at(editor, 0)),
+			      "and not with the keyword's ink — a type is not a control word");
+			check(other != NSNotFound && typeInk != nil && same_colour(ink_at(editor, other), typeInk),
+			      "every class name shares that one ink");
+			check(attribute != NSNotFound && same_colour(ink_at(editor, attribute), ink_at(editor, 0)),
+			      "a property's attributes are keywords");
+			check(local != NSNotFound && ink_at(editor, local) == nil, "and a local variable stays plain");
+			if (atString != NSNotFound) {
+				printf("  (note: @-string ink at the @ is %s)\n",
+				       ink_at(editor, atString) != nil ? "present" : "absent");
+				check(ink_at(editor, atString) != nil, "the `@` of an @-string is part of the string");
+			}
+		}
+
+		/* 6. **AND IT IS CHEAP ENOUGH TO RUN ON EVERY KEYSTROKE.** The pass is over the whole file, so a document of a
 		 * thousand-odd lines has to cost milliseconds rather than the half-second the string set did: this is the same
 		 * measurement the rewrite was made against, kept so a regression is a number and not a feeling. */
 		{

@@ -49,7 +49,7 @@ static const CGFloat AGRulerThickness = 48.0;
  * fifty. */
 static const char *const AGKeywordTable[] = {
 	"if", "do", "id", "NO", "YES", "for", "int", "nil", "long", "char", "else", "case", "enum", "goto",
-	"void", "BOOL", "NULL", "self", "while", "break", "union", "short", "float", "const", "super", "sizeof",
+	"void", "NULL", "self", "while", "break", "union", "short", "float", "const", "super", "sizeof",
 	"struct", "static", "extern", "switch", "double", "return", "signed", "typedef", "continue", "volatile",
 	"register", "unsigned", "instancetype", "@end", "@try", "@class", "@catch", "@throw", "@import",
 	"@finally", "@selector", "@property", "@protocol", "@synthesize", "@interface", "@autoreleasepool",
@@ -86,6 +86,49 @@ static BOOL AGWordIsKeyword(const unichar *word, NSUInteger length)
 	return NO;
 }
 
+/* **THE PREPROCESSOR'S OWN WORDS**, which are the ones a `#` introduces. They wear the keyword ink because that is what they
+ * are — a keyword of the translation unit's first pass — and the LIST is what makes `#import` recognisable, because the
+ * `import` on its own is not a keyword of anything else and used to be plain text. */
+static BOOL AGWordIsDirective(const unichar *word, NSUInteger length)
+{
+	static const char *const directives[] = {
+		"import", "include", "define", "undef", "if", "ifdef", "ifndef", "else", "elif", "endif", "error",
+		"warning", "pragma", "line", NULL
+	};
+	NSUInteger i;
+
+	for (i = 0; directives[i] != NULL; i++) {
+		const char *candidate = directives[i];
+		NSUInteger j;
+
+		if ((NSUInteger)strlen(candidate) != length) {
+			continue;
+		}
+		for (j = 0; j < length; j++) {
+			if (word[j] > 0x7Fu || (char)word[j] != candidate[j]) {
+				break;
+			}
+		}
+		if (j == length) {
+			return YES;
+		}
+	}
+	return NO;
+}
+
+/* **AND WHETHER A WORD IS A TYPE, WHICH IS THE ONE CONVENTION OBJECTIVE-C KEEPS ABSOLUTELY.** A class, a struct and every
+ * `NS…`/`CF…` typedef begin with a capital; a local, a method and a variable begin with a lower-case letter or an
+ * underscore. So a capitalised word that is not a keyword is a type name — `NSView`, `AGProject`, `CGFloat`, `BOOL`,
+ * `NS_ASSUME_NONNULL_BEGIN` — and a word that is a keyword stays a keyword, because the table is asked first. This is a
+ * heuristic, and it is the one every editor of this language uses, because the language has no other way to say it. */
+static BOOL AGWordIsTypeName(const unichar *word, NSUInteger length)
+{
+	if (length == 0 || word[0] == '@') {
+		return NO;		/* `@` words are keywords or selectors, and the table has them */
+	}
+	return (word[0] >= 'A' && word[0] <= 'Z') || (word[0] == '_');
+}
+
 static NSColor *AGCommentColor(void)
 {
 	static NSColor *color = nil;
@@ -112,6 +155,20 @@ static NSColor *AGNumberColor(void)
 
 	if (color == nil) {
 		color = [[NSColor colorWithCalibratedRed:0.35 green:0.30 blue:0.62 alpha:1.0] retain];
+	}
+	return color;
+}
+
+/* **A TYPE'S OWN INK, WHICH IS WHAT MAKES AN OBJECTIVE-C FILE READ AS ONE.** A class name — `NSView`, `AGProject` — is
+ * capitalised by convention and is the word a reader's eye needs to find fastest in a line of C; giving it the keyword's
+ * ink would fold it in with `if` and `return`. A TEAL, because the four existing inks already own green (comments), red
+ * (strings), blue-violet (numbers) and purple (keywords), and a fifth hue is what keeps a declaration line legible. */
+static NSColor *AGTypeColor(void)
+{
+	static NSColor *color = nil;
+
+	if (color == nil) {
+		color = [[NSColor colorWithCalibratedRed:0.13 green:0.42 blue:0.55 alpha:1.0] retain];
 	}
 	return color;
 }
@@ -481,10 +538,25 @@ static BOOL AGIsDigit(unichar c)
 	[[_textView window] makeFirstResponder:_textView];
 }
 
-/* THE COLOUR PASS. Four scanners in one loop: a comment swallows to its end, a string to its closing quote (or the
- * end of the line, which is how C recovers from an unterminated one), a number to its last digit-or-dot, and a word
- * is a keyword or it is not. Nothing is written to the storage — every run is a temporary attribute, so the file's
- * bytes and the view's ink stay separate. */
+/* THE COLOUR PASS. Six questions in one loop, each answered by consuming its own run:
+ *
+ *   a comment      swallows to its end;
+ *   a string       to its closing quote (or the end of the line, which is how C recovers from an unterminated one) —
+ *                  and `@"like this"` is one string, `@` included;
+ *   a number       to its last digit-or-dot, including a hex or a float suffix;
+ *   a directive    a `#` and the word after it are the keyword ink, and an `#import`/`#include`'s `<…>` path is the
+ *                  string ink, which is how a header reads as a name rather than as six operators;
+ *   a keyword      a C or Objective-C word from the table — and after `@property`, the parenthesised list of attributes
+ *                  that follows it, because `nonatomic` and `copy` are keywords in exactly one place and this is it;
+ *   a type name    any other word that begins with a capital, which is the language's own convention for a class, a
+ *                  struct or an `NS…`/`CF…` typedef.
+ *
+ * Nothing is written to the storage — every run is a temporary attribute, so the file's bytes and the view's ink stay
+ * separate.
+ *
+ * **AND NOTHING HERE ALLOCATES PER WORD.** The scanner reads characters, compares runs against C tables, and applies
+ * one temporary attribute per run; the version before this one built an `NSString` per identifier to ask an `NSSet` a
+ * question, which cost 500 ms a pass. A pass over 1,600 lines is 5-7 ms, and every edit runs one. */
 - (void)highlight
 {
 	NSString *text = [_textView string];
@@ -537,6 +609,30 @@ static BOOL AGIsDigit(unichar c)
 				continue;
 			}
 		}
+		/* **AND AN `@` BEFORE THE QUOTE IS PART OF THE STRING**, which is how Objective-C writes one. It used to be scanned
+		 * as a word of its own — a `@` with no ink — and left as plain text in front of a coloured run. */
+		if (c == '@' && i + 1 < length && [text characterAtIndex:i + 1] == '"') {
+			unichar quote = '"';
+			NSUInteger start = i, end = i + 2;
+
+			while (end < length) {
+				unichar inner = [text characterAtIndex:end];
+
+				if (inner == '\\' && end + 1 < length) {
+					end += 2;
+					continue;
+				}
+				end++;
+				if (inner == quote || inner == '\n') {
+					break;
+				}
+			}
+			[layoutManager addTemporaryAttribute:NSForegroundColorAttributeName
+						       value:AGStringColor()
+					   forCharacterRange:NSMakeRange(start, end - start)];
+			i = end;
+			continue;
+		}
 		if (c == '"' || c == '\'') {
 			unichar quote = c;
 			NSUInteger start = i, end = i + 1;
@@ -578,9 +674,58 @@ static BOOL AGIsDigit(unichar c)
 					   forCharacterRange:NSMakeRange(start, i - start)];
 			continue;
 		}
+		/* **A `#` AND THE WORD IT INTRODUCES ARE A PREPROCESSOR DIRECTIVE**, and an import's header path is a name rather
+		 * than a row of `<`, `/` and `.` operators. Both are the same two inks the rest of the file uses, so a
+		 * preprocessor line reads as part of the file rather than as a foreign strip at the top of it. */
+		if (c == '#') {
+			NSUInteger hash = i, wordStart, wordEnd;
+			unichar word[24];
+			NSUInteger wordLength;
+
+			i++;
+			while (i < length && [text characterAtIndex:i] == ' ') {
+				i++;
+			}
+			wordStart = i;
+			while (i < length && AGIsIdentifierBody([text characterAtIndex:i])) {
+				if (i - wordStart < sizeof(word) / sizeof(word[0])) {
+					word[i - wordStart] = [text characterAtIndex:i];
+				}
+				i++;
+			}
+			wordEnd = i;
+			wordLength = wordEnd - wordStart;
+			[layoutManager addTemporaryAttribute:NSForegroundColorAttributeName
+						       value:AGKeywordColor()
+					   forCharacterRange:NSMakeRange(hash, wordEnd - hash)];
+			if (wordLength <= sizeof(word) / sizeof(word[0]) && AGWordIsDirective(word, wordLength)
+			    && (wordLength == 6 || wordLength == 7)) {	/* "import", "include" */
+				NSUInteger pathStart = wordEnd;
+
+				while (pathStart < length && [text characterAtIndex:pathStart] == ' ') {
+					pathStart++;
+				}
+				if (pathStart < length && [text characterAtIndex:pathStart] == '<') {
+					NSUInteger pathEnd = pathStart + 1;
+
+					while (pathEnd < length && [text characterAtIndex:pathEnd] != '>'
+					       && [text characterAtIndex:pathEnd] != '\n') {
+						pathEnd++;
+					}
+					if (pathEnd < length && [text characterAtIndex:pathEnd] == '>') {
+						pathEnd++;
+					}
+					[layoutManager addTemporaryAttribute:NSForegroundColorAttributeName
+								       value:AGStringColor()
+							   forCharacterRange:NSMakeRange(pathStart, pathEnd - pathStart)];
+				}
+			}
+			continue;
+		}
 		if (AGIsIdentifierStart(c)) {
 			NSUInteger start = i;
 			unichar word[24];		/* the longest keyword and then some; a longer run is not one */
+			BOOL fits;
 
 			while (i < length && AGIsIdentifierBody([text characterAtIndex:i])) {
 				unichar body = [text characterAtIndex:i];
@@ -590,10 +735,39 @@ static BOOL AGIsDigit(unichar c)
 				}
 				i++;
 			}
-			if (i - start <= sizeof(word) / sizeof(word[0])
-			    && AGWordIsKeyword(word, i - start)) {
+			fits = (i - start <= sizeof(word) / sizeof(word[0]));
+			if (fits && AGWordIsKeyword(word, i - start)) {
 				[layoutManager addTemporaryAttribute:NSForegroundColorAttributeName
 							       value:AGKeywordColor()
+						   forCharacterRange:NSMakeRange(start, i - start)];
+				/* **AND `@property` OWNS THE LIST THAT FOLLOWS IT.** `nonatomic`, `copy`, `strong`, `readonly` and
+				 * their neighbours are keywords in exactly one place — between the parentheses after `@property` —
+				 * and nowhere else, which is why they are not in the table: a local called `copy` must stay plain.
+				 * The list is coloured here, at the one site that can know what it is. */
+				if (i - start == 9 && word[0] == '@') {
+					NSUInteger paren = i;
+
+					while (paren < length && ([text characterAtIndex:paren] == ' '
+								  || [text characterAtIndex:paren] == '\t')) {
+						paren++;
+					}
+					if (paren < length && [text characterAtIndex:paren] == '(') {
+						NSUInteger close = paren + 1;
+
+						while (close < length && [text characterAtIndex:close] != ')'
+						       && [text characterAtIndex:close] != '\n') {
+							close++;
+						}
+						if (close < length && [text characterAtIndex:close] == ')') {
+							[layoutManager addTemporaryAttribute:NSForegroundColorAttributeName
+										       value:AGKeywordColor()
+									   forCharacterRange:NSMakeRange(paren, close + 1 - paren)];
+						}
+					}
+				}
+			} else if (fits && AGWordIsTypeName(word, i - start)) {
+				[layoutManager addTemporaryAttribute:NSForegroundColorAttributeName
+							       value:AGTypeColor()
 						   forCharacterRange:NSMakeRange(start, i - start)];
 			}
 			continue;
