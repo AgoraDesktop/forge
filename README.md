@@ -22,7 +22,7 @@ bundles use). `Run` then launches the product, and the log says where the bundle
 
 **The toolbar's icons are Tabler's, and they come from the SYSTEM first.** The nine symbols this band wants are part of
 `libagora-iconservices`'s vendored Tabler theme — every outline Tabler publishes, installed under `share/icons/Tabler`
-beside Frost — so `AGToolbarIcon()` asks `+[NSImage imageNamed:@"hammer"]` and the pictures are a system resource rather
+beside the place theme — so `AGToolbarIcon()` asks `+[NSImage imageNamed:@"hammer"]` and the pictures are a system resource rather
 than a copy of the art in this binary. The **fallback** is the one this project still carries: the same nine outlines
 vendored in `assets/tabler-icons` (MIT, with their licence and `PROVENANCE.md`), rasterised at 24 and 48 points by
 `tools/embed-glyphs.py` into `src/agora-toolbar-glyphs.h`, **checked in**, so a machine whose prefix has no theme still

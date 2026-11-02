@@ -782,8 +782,8 @@ static NSError *AGForgeError(NSString *reason)
 		 * APPLICATION DELEGATE, so a nil-target item would find the same object. */
 		[item setTarget:[[NSApplication sharedApplication] delegate]];
 		/* **AND THE PICTURES ARE THE SYSTEM'S SYMBOLS, ASKED FOR AS `toolbar:` AND NOT AS A BARE NAME.** A bare
-		 * `folder-open` is a name BOTH installed themes carry — Frost's filled, coloured place folder and Tabler's outline
-		 * symbol — and the unprefixed lookup answers the theme in charge (Frost, in a session), which drew a solid black
+		 * `folder-open` is a name BOTH themes a session installs carry — a place theme's filled, coloured place folder and Tabler's outline
+		 * symbol — and the unprefixed lookup answers the theme in charge (Flat-Remix, in a session), which drew a solid black
 		 * folder in a template band. MEASURED. `toolbar:` means "the theme that holds the UI's symbols", so a machine
 		 * whose prefix carries no such theme gets these two rows as LABELS — what the band does with any item that has no
 		 * picture — rather than a second copy of somebody else's art. */

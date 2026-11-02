@@ -123,7 +123,7 @@ static NSImage *fn_glyph_image(const unsigned char *small, const unsigned char *
 #endif
 
 /* **THE SYSTEM'S THEME FIRST, AND THE NAMES ARE THE THEME'S OWN.** The vendored Tabler set is installed as a theme
- * beside Frost — 5,203 symbols at 24, 48 and 96 pixels, `libagora-iconservices`'s lookup and AppKit's
+ * beside the place theme — 5,203 symbols at 24, 48 and 96 pixels, `libagora-iconservices`'s lookup and AppKit's
  * `+[NSImage imageNamed:]` — so the nine pictures this toolbar wants are a SYSTEM RESOURCE, and asking for `hammer` is
  * the whole of using it. The compiled-in copy below is the fallback for a machine where the theme is not installed (a
  * prefix that predates it, or an install somebody trimmed): the pictures are the same art, so the toolbar looks the same
